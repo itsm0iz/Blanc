@@ -23,10 +23,24 @@ no clutter. 100% on-device.
 - Settings: home alignment (left / center / right), theme (system / light /
   dark), status-bar visibility, set-as-default-launcher.
 
+## Universal search (working now)
+
+Swipe up opens one search box that spans:
+
+- **Apps** across all profiles
+- **Calculator** — type `2+2*3`, get `= 8`; tap to copy
+- **Offline dictionary** — type a word (or `define <word>`) for an instant,
+  fully on-device definition. 108k words, ~3.8 MB, built from the Wordset
+  dictionary (CC BY-SA 4.0, derived from WordNet 3.0)
+- **Settings** shortcuts (Wi-Fi, Bluetooth, Display, …)
+- **Web** search fallback
+
+Enter launches the top app match, or searches the web when there's none.
+
 ## Roadmap
 
-- **Universal search** — apps + contacts + settings + calculator/units + web,
-  with auto-launch reworked so it doesn't fight multi-source results.
+- **Search: contacts** — add contact lookup / quick-dial (needs the contacts
+  permission flow).
 - **Usage monitor** — a lightweight screen (opened from the Blanc app entry)
   with charts, forward projections, and optional motivational nudges. Uses a
   local database that records daily totals over time, since Android only keeps

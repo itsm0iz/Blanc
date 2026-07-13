@@ -9,7 +9,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.AnnotatedString
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -17,11 +19,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.blanc.MainViewModel
 import app.blanc.ui.drawer.AppDrawerScreen
 import app.blanc.ui.home.HomeScreen
+import app.blanc.ui.search.UniversalSearchScreen
 import app.blanc.ui.settings.SettingsScreen
 import app.blanc.ui.theme.BlancTheme
 import app.blanc.ui.usage.UsageScreen
 import app.blanc.usage.UsagePermission
 import app.blanc.util.DefaultLauncher
+import app.blanc.util.openSettingsAction
+import app.blanc.util.webSearch
 
 @Composable
 fun BlancApp(viewModel: MainViewModel) {
@@ -30,6 +35,8 @@ fun BlancApp(viewModel: MainViewModel) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val usageGranted by viewModel.usageGranted.collectAsStateWithLifecycle()
     val usageState by viewModel.usageState.collectAsStateWithLifecycle()
+    val searchResults by viewModel.searchResults.collectAsStateWithLifecycle()
+    val clipboard = LocalClipboardManager.current
 
     BlancTheme(themeMode = settings.theme) {
         val view = LocalView.current
@@ -62,27 +69,51 @@ fun BlancApp(viewModel: MainViewModel) {
                     onAddSlot = { viewModel.openDrawer(DrawerMode.AssignHome(settings.homeApps.size)) },
                 )
 
-                is Screen.Drawer -> AppDrawerScreen(
-                    apps = apps,
-                    mode = current.mode,
-                    homeAppsCount = settings.homeApps.size,
-                    onLaunch = {
-                        viewModel.launchApp(it)
-                        viewModel.goHome()
-                    },
-                    onAssign = { index, app ->
-                        viewModel.assignHomeApp(index, app)
-                        viewModel.goHome()
-                    },
-                    onRemove = {
-                        viewModel.removeHomeApp(it)
-                        viewModel.goHome()
-                    },
-                    onAddHome = {
-                        viewModel.addHomeApp(it)
-                        viewModel.goHome()
-                    },
-                )
+                is Screen.Drawer -> when (current.mode) {
+                    is DrawerMode.Launch -> UniversalSearchScreen(
+                        results = searchResults,
+                        onQueryChange = { viewModel.onSearchQuery(it) },
+                        onLaunchApp = {
+                            viewModel.launchApp(it)
+                            viewModel.goHome()
+                        },
+                        onAddAppToHome = {
+                            viewModel.addHomeApp(it)
+                            viewModel.goHome()
+                        },
+                        onOpenSetting = {
+                            view.context.openSettingsAction(it)
+                            viewModel.goHome()
+                        },
+                        onWebSearch = {
+                            view.context.webSearch(it)
+                            viewModel.goHome()
+                        },
+                        onCopy = { clipboard.setText(AnnotatedString(it)) },
+                    )
+
+                    is DrawerMode.AssignHome -> AppDrawerScreen(
+                        apps = apps,
+                        mode = current.mode,
+                        homeAppsCount = settings.homeApps.size,
+                        onLaunch = {
+                            viewModel.launchApp(it)
+                            viewModel.goHome()
+                        },
+                        onAssign = { index, app ->
+                            viewModel.assignHomeApp(index, app)
+                            viewModel.goHome()
+                        },
+                        onRemove = {
+                            viewModel.removeHomeApp(it)
+                            viewModel.goHome()
+                        },
+                        onAddHome = {
+                            viewModel.addHomeApp(it)
+                            viewModel.goHome()
+                        },
+                    )
+                }
 
                 is Screen.Settings -> SettingsScreen(
                     settings = settings,

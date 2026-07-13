@@ -13,11 +13,16 @@ import app.blanc.data.prefs.BlancSettings
 import app.blanc.data.prefs.HomeAlignment
 import app.blanc.data.prefs.SettingsStore
 import app.blanc.data.prefs.ThemeMode
+import app.blanc.search.Dictionary
+import app.blanc.search.SearchEngine
+import app.blanc.search.SearchResult
 import app.blanc.ui.DrawerMode
 import app.blanc.ui.Screen
 import app.blanc.usage.UsagePermission
 import app.blanc.usage.UsageRepository
 import app.blanc.usage.UsageState
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -46,6 +51,11 @@ class MainViewModel(
 
     private val _usageState = MutableStateFlow<UsageState?>(null)
     val usageState: StateFlow<UsageState?> = _usageState.asStateFlow()
+
+    private val searchEngine = SearchEngine(Dictionary(appContext))
+    private val _searchResults = MutableStateFlow<List<SearchResult>>(emptyList())
+    val searchResults: StateFlow<List<SearchResult>> = _searchResults.asStateFlow()
+    private var searchJob: Job? = null
 
     // --- Navigation ---
 
@@ -80,6 +90,14 @@ class MainViewModel(
     }
 
     // --- Actions ---
+
+    fun onSearchQuery(query: String) {
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
+            delay(60)
+            _searchResults.value = searchEngine.search(query, apps.value)
+        }
+    }
 
     fun launchApp(app: AppInfo) {
         repository.launch(app)
