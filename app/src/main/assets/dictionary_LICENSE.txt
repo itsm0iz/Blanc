@@ -1,0 +1,16 @@
+Blanc's bundled offline dictionary (dictionary.db) is built from the Wordset
+Dictionary:
+
+    https://github.com/wordset/wordset-dictionary
+
+Wordset by Wordset, Inc. is licensed under a Creative Commons
+Attribution-ShareAlike 4.0 International License (CC BY-SA 4.0):
+
+    http://creativecommons.org/licenses/by-sa/4.0/
+
+The Wordset Dictionary is derived from Princeton WordNet 3.0
+(Copyright 2006 by Princeton University, all rights reserved).
+
+Only the word and a compact subset of its definitions are retained. The
+dictionary data remains under CC BY-SA 4.0; this notice is distributed with it
+to satisfy attribution. Blanc's own source code is under the MIT License.
