@@ -18,9 +18,7 @@ class BlancApplication : Application() {
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             try {
                 val report = buildString {
-                    append("Blanc ")
-                    append(BuildConfig.VERSION_NAME)
-                    append(" crashed\n\n")
+                    append("Blanc crashed\n\n")
                     append(Log.getStackTraceString(throwable))
                 }
                 File(filesDir, CRASH_FILE).writeText(report)
