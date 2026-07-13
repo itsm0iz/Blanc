@@ -2,6 +2,7 @@ package app.blanc.ui.motion
 
 import android.content.Context
 import android.provider.Settings
+import android.view.HapticFeedbackConstants
 import android.view.WindowManager
 import androidx.compose.animation.core.Animatable
 import androidx.compose.runtime.Composable
@@ -13,6 +14,7 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import kotlinx.coroutines.delay
 
 /**
@@ -43,6 +45,26 @@ fun rememberMotionEnabled(userEnabled: Boolean): Boolean {
             60f
         }
         refreshRate >= 30f
+    }
+}
+
+/**
+ * Returns a crisp "clock tick" haptic callback, or a no-op when haptics are
+ * off. Respects the system haptic setting (performHapticFeedback honors it).
+ */
+@Composable
+fun rememberHapticTick(enabled: Boolean): () -> Unit {
+    val view = LocalView.current
+    return remember(enabled, view) {
+        {
+            if (enabled) {
+                try {
+                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                } catch (e: Exception) {
+                    // ignore; haptics are non-essential
+                }
+            }
+        }
     }
 }
 

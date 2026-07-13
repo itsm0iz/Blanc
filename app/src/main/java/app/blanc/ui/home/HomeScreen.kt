@@ -1,8 +1,11 @@
 package app.blanc.ui.home
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -30,6 +33,8 @@ import app.blanc.data.AppInfo
 import app.blanc.data.prefs.AppKey
 import app.blanc.data.prefs.BlancSettings
 import app.blanc.data.prefs.HomeAlignment
+import app.blanc.ui.motion.BlancMotion
+import app.blanc.ui.motion.rememberHapticTick
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -40,12 +45,15 @@ import java.util.Locale
 fun HomeScreen(
     apps: List<AppInfo>,
     settings: BlancSettings,
+    motionEnabled: Boolean,
+    hapticsEnabled: Boolean,
     onLaunch: (AppInfo) -> Unit,
     onOpenDrawer: () -> Unit,
     onOpenSettings: () -> Unit,
     onAssignSlot: (Int) -> Unit,
     onAddSlot: () -> Unit,
 ) {
+    val tick = rememberHapticTick(hapticsEnabled)
     val horizontalAlignment = when (settings.alignment) {
         HomeAlignment.START -> Alignment.Start
         HomeAlignment.CENTER -> Alignment.CenterHorizontally
@@ -67,7 +75,10 @@ fun HomeScreen(
         modifier = Modifier
             .fillMaxSize()
             .pointerInput(Unit) {
-                detectTapGestures(onLongPress = { onOpenSettings() })
+                detectTapGestures(onLongPress = {
+                    tick()
+                    onOpenSettings()
+                })
             }
             .pointerInput(Unit) {
                 detectVerticalDragGestures(
@@ -88,18 +99,15 @@ fun HomeScreen(
 
         resolved.forEachIndexed { index, (info, _) ->
             if (info != null) {
-                Text(
-                    text = info.label,
-                    fontSize = 22.sp,
+                HomeAppText(
+                    label = info.label,
                     textAlign = textAlign,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .combinedClickable(
-                            onClick = { onLaunch(info) },
-                            onLongClick = { onAssignSlot(index) },
-                        )
-                        .padding(vertical = 10.dp),
+                    motionEnabled = motionEnabled,
+                    onClick = { onLaunch(info) },
+                    onLongClick = {
+                        tick()
+                        onAssignSlot(index)
+                    },
                 )
             }
         }
@@ -125,6 +133,41 @@ fun HomeScreen(
             )
         }
     }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun HomeAppText(
+    label: String,
+    textAlign: TextAlign,
+    motionEnabled: Boolean,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    // The "whisper": letters spread ~1.5sp while pressed, springing back on release.
+    val letterSpacing by animateFloatAsState(
+        targetValue = if (pressed && motionEnabled) 1.5f else 0f,
+        animationSpec = BlancMotion.WhisperSpring,
+        label = "whisper",
+    )
+    Text(
+        text = label,
+        fontSize = 22.sp,
+        textAlign = textAlign,
+        letterSpacing = letterSpacing.sp,
+        color = MaterialTheme.colorScheme.onBackground,
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                interactionSource = interaction,
+                indication = null,
+                onClick = onClick,
+                onLongClick = onLongClick,
+            )
+            .padding(vertical = 10.dp),
+    )
 }
 
 @Composable

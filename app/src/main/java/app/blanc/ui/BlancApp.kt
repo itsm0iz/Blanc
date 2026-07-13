@@ -64,6 +64,8 @@ fun BlancApp(viewModel: MainViewModel) {
                 is Screen.Home -> HomeScreen(
                     apps = apps,
                     settings = settings,
+                    motionEnabled = motionEnabled,
+                    hapticsEnabled = settings.haptics,
                     onLaunch = { viewModel.launchApp(it) },
                     onOpenDrawer = { viewModel.openDrawer() },
                     onOpenSettings = { viewModel.openSettings() },
@@ -75,6 +77,7 @@ fun BlancApp(viewModel: MainViewModel) {
                     is DrawerMode.Launch -> UniversalSearchScreen(
                         results = searchResults,
                         motionEnabled = motionEnabled,
+                        hapticsEnabled = settings.haptics,
                         onQueryChange = { viewModel.onSearchQuery(it) },
                         onLaunchApp = {
                             viewModel.launchApp(it)
@@ -125,6 +128,7 @@ fun BlancApp(viewModel: MainViewModel) {
                     onCycleTheme = { viewModel.cycleTheme() },
                     onToggleStatusBar = { viewModel.toggleStatusBar() },
                     onToggleAnimations = { viewModel.toggleAnimations() },
+                    onToggleHaptics = { viewModel.toggleHaptics() },
                     onSetDefaultLauncher = { DefaultLauncher.request(view.context) },
                     onOpenUsage = { viewModel.openUsage() },
                 )

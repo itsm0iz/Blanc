@@ -34,12 +34,14 @@ import app.blanc.data.AppInfo
 import app.blanc.search.SearchResult
 import app.blanc.ui.motion.cascadeEnter
 import app.blanc.ui.motion.overshootEnter
+import app.blanc.ui.motion.rememberHapticTick
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun UniversalSearchScreen(
     results: List<SearchResult>,
     motionEnabled: Boolean,
+    hapticsEnabled: Boolean,
     onQueryChange: (String) -> Unit,
     onLaunchApp: (AppInfo) -> Unit,
     onAddAppToHome: (AppInfo) -> Unit,
@@ -49,6 +51,7 @@ fun UniversalSearchScreen(
 ) {
     var query by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
+    val tick = rememberHapticTick(hapticsEnabled)
 
     fun submit() {
         val topApp = results.firstOrNull { it is SearchResult.App } as? SearchResult.App
@@ -88,7 +91,10 @@ fun UniversalSearchScreen(
                         is SearchResult.App -> ResultRow(
                             title = result.app.label,
                             onClick = { onLaunchApp(result.app) },
-                            onLongClick = { onAddAppToHome(result.app) },
+                            onLongClick = {
+                                tick()
+                                onAddAppToHome(result.app)
+                            },
                         )
 
                         is SearchResult.Calculation -> ResultRow(

@@ -30,6 +30,7 @@ fun SettingsScreen(
     onCycleTheme: () -> Unit,
     onToggleStatusBar: () -> Unit,
     onToggleAnimations: () -> Unit,
+    onToggleHaptics: () -> Unit,
     onSetDefaultLauncher: () -> Unit,
     onOpenUsage: () -> Unit,
 ) {
@@ -78,6 +79,12 @@ fun SettingsScreen(
             label = "Animations",
             value = if (settings.animations) "On" else "Off",
             onClick = onToggleAnimations,
+        )
+
+        SettingRow(
+            label = "Haptics",
+            value = if (settings.haptics) "On" else "Off",
+            onClick = onToggleHaptics,
         )
 
         SettingRow(

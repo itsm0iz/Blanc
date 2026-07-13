@@ -149,6 +149,10 @@ class MainViewModel(
         viewModelScope.launch { settingsStore.setAnimations(!settings.value.animations) }
     }
 
+    fun toggleHaptics() {
+        viewModelScope.launch { settingsStore.setHaptics(!settings.value.haptics) }
+    }
+
     companion object {
         fun factory(context: Context): ViewModelProvider.Factory {
             val appContext = context.applicationContext

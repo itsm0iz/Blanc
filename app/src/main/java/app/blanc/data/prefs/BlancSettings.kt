@@ -33,6 +33,7 @@ data class BlancSettings(
     val theme: ThemeMode = ThemeMode.DARK,
     val showStatusBar: Boolean = false,
     val animations: Boolean = true,
+    val haptics: Boolean = true,
 ) {
     companion object {
         const val MAX_HOME_APPS = 8

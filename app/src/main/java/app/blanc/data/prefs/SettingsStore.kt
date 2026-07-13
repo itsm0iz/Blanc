@@ -35,6 +35,7 @@ class SettingsStore(context: Context) {
             theme = ThemeMode.entries.getOrElse(this[KEY_THEME] ?: ThemeMode.DARK.ordinal) { ThemeMode.DARK },
             showStatusBar = this[KEY_STATUS_BAR] ?: false,
             animations = this[KEY_ANIMATIONS] ?: true,
+            haptics = this[KEY_HAPTICS] ?: true,
         )
     }
 
@@ -80,11 +81,16 @@ class SettingsStore(context: Context) {
         store.edit { it[KEY_ANIMATIONS] = enabled }
     }
 
+    suspend fun setHaptics(enabled: Boolean) {
+        store.edit { it[KEY_HAPTICS] = enabled }
+    }
+
     private companion object {
         val KEY_HOME_APPS = stringPreferencesKey("home_apps")
         val KEY_ALIGNMENT = intPreferencesKey("alignment")
         val KEY_THEME = intPreferencesKey("theme")
         val KEY_STATUS_BAR = booleanPreferencesKey("status_bar")
         val KEY_ANIMATIONS = booleanPreferencesKey("animations")
+        val KEY_HAPTICS = booleanPreferencesKey("haptics")
     }
 }
