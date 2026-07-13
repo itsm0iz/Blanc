@@ -15,6 +15,9 @@ import app.blanc.data.prefs.SettingsStore
 import app.blanc.data.prefs.ThemeMode
 import app.blanc.ui.DrawerMode
 import app.blanc.ui.Screen
+import app.blanc.usage.UsagePermission
+import app.blanc.usage.UsageRepository
+import app.blanc.usage.UsageState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -23,8 +26,10 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class MainViewModel(
+    private val appContext: Context,
     private val repository: AppRepository,
     private val settingsStore: SettingsStore,
+    private val usageRepository: UsageRepository,
 ) : ViewModel() {
 
     val apps: StateFlow<List<AppInfo>> = repository.appsFlow()
@@ -36,6 +41,12 @@ class MainViewModel(
     private val _screen = MutableStateFlow<Screen>(Screen.Home)
     val screen: StateFlow<Screen> = _screen.asStateFlow()
 
+    private val _usageGranted = MutableStateFlow(false)
+    val usageGranted: StateFlow<Boolean> = _usageGranted.asStateFlow()
+
+    private val _usageState = MutableStateFlow<UsageState?>(null)
+    val usageState: StateFlow<UsageState?> = _usageState.asStateFlow()
+
     // --- Navigation ---
 
     fun openDrawer(mode: DrawerMode = DrawerMode.Launch) {
@@ -46,8 +57,26 @@ class MainViewModel(
         _screen.value = Screen.Settings
     }
 
+    fun openUsage() {
+        _screen.value = Screen.Usage
+        loadUsage()
+    }
+
     fun goHome() {
         _screen.value = Screen.Home
+    }
+
+    fun loadUsage() {
+        viewModelScope.launch {
+            val granted = UsagePermission.isGranted(appContext)
+            _usageGranted.value = granted
+            if (granted) {
+                usageRepository.record()
+                _usageState.value = usageRepository.state()
+            } else {
+                _usageState.value = null
+            }
+        }
     }
 
     // --- Actions ---
@@ -104,8 +133,10 @@ class MainViewModel(
             return viewModelFactory {
                 initializer {
                     MainViewModel(
+                        appContext = appContext,
                         repository = AppRepository(appContext),
                         settingsStore = SettingsStore(appContext),
+                        usageRepository = UsageRepository(appContext),
                     )
                 }
             }

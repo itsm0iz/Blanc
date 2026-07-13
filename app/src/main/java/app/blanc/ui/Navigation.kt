@@ -13,4 +13,5 @@ sealed interface Screen {
     data object Home : Screen
     data class Drawer(val mode: DrawerMode) : Screen
     data object Settings : Screen
+    data object Usage : Screen
 }

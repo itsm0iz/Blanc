@@ -19,6 +19,8 @@ import app.blanc.ui.drawer.AppDrawerScreen
 import app.blanc.ui.home.HomeScreen
 import app.blanc.ui.settings.SettingsScreen
 import app.blanc.ui.theme.BlancTheme
+import app.blanc.ui.usage.UsageScreen
+import app.blanc.usage.UsagePermission
 import app.blanc.util.DefaultLauncher
 
 @Composable
@@ -26,6 +28,8 @@ fun BlancApp(viewModel: MainViewModel) {
     val screen by viewModel.screen.collectAsStateWithLifecycle()
     val apps by viewModel.apps.collectAsStateWithLifecycle()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val usageGranted by viewModel.usageGranted.collectAsStateWithLifecycle()
+    val usageState by viewModel.usageState.collectAsStateWithLifecycle()
 
     BlancTheme(themeMode = settings.theme) {
         val view = LocalView.current
@@ -86,6 +90,16 @@ fun BlancApp(viewModel: MainViewModel) {
                     onCycleTheme = { viewModel.cycleTheme() },
                     onToggleStatusBar = { viewModel.toggleStatusBar() },
                     onSetDefaultLauncher = { DefaultLauncher.request(view.context) },
+                    onOpenUsage = { viewModel.openUsage() },
+                )
+
+                is Screen.Usage -> UsageScreen(
+                    granted = usageGranted,
+                    state = usageState,
+                    labelFor = { pkg ->
+                        apps.firstOrNull { it.packageName == pkg }?.label ?: pkg
+                    },
+                    onGrantAccess = { UsagePermission.requestAccess(view.context) },
                 )
             }
         }

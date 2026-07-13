@@ -30,6 +30,7 @@ fun SettingsScreen(
     onCycleTheme: () -> Unit,
     onToggleStatusBar: () -> Unit,
     onSetDefaultLauncher: () -> Unit,
+    onOpenUsage: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -80,8 +81,8 @@ fun SettingsScreen(
 
         SettingRow(
             label = "Usage monitor",
-            value = "Soon",
-            onClick = {},
+            value = "›",
+            onClick = onOpenUsage,
         )
 
         Spacer(Modifier.height(24.dp))

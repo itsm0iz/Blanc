@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import app.blanc.ui.BlancApp
+import app.blanc.usage.UsageRecorderWorker
 
 class MainActivity : ComponentActivity() {
 
@@ -15,6 +16,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        UsageRecorderWorker.schedule(applicationContext)
         setContent {
             BlancApp(viewModel)
         }
