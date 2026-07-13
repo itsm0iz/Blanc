@@ -2,6 +2,7 @@ package app.blanc.ui.search
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,11 +32,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.blanc.data.AppInfo
 import app.blanc.search.SearchResult
+import app.blanc.ui.motion.cascadeEnter
+import app.blanc.ui.motion.overshootEnter
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun UniversalSearchScreen(
     results: List<SearchResult>,
+    motionEnabled: Boolean,
     onQueryChange: (String) -> Unit,
     onLaunchApp: (AppInfo) -> Unit,
     onAddAppToHome: (AppInfo) -> Unit,
@@ -71,36 +75,41 @@ fun UniversalSearchScreen(
             keyboardActions = KeyboardActions(onSearch = { submit() }),
             modifier = Modifier
                 .fillMaxWidth()
+                .overshootEnter(motionEnabled)
                 .focusRequester(focusRequester),
         )
 
+        val cascade = motionEnabled && query.isEmpty()
+
         LazyColumn(modifier = Modifier.fillMaxSize()) {
-            itemsIndexed(results) { _, result ->
-                when (result) {
-                    is SearchResult.App -> ResultRow(
-                        title = result.app.label,
-                        onClick = { onLaunchApp(result.app) },
-                        onLongClick = { onAddAppToHome(result.app) },
-                    )
+            itemsIndexed(results) { index, result ->
+                Box(Modifier.fillMaxWidth().cascadeEnter(index, cascade)) {
+                    when (result) {
+                        is SearchResult.App -> ResultRow(
+                            title = result.app.label,
+                            onClick = { onLaunchApp(result.app) },
+                            onLongClick = { onAddAppToHome(result.app) },
+                        )
 
-                    is SearchResult.Calculation -> ResultRow(
-                        title = "= ${result.result}",
-                        subtitle = result.expression,
-                        onClick = { onCopy(result.result) },
-                    )
+                        is SearchResult.Calculation -> ResultRow(
+                            title = "= ${result.result}",
+                            subtitle = result.expression,
+                            onClick = { onCopy(result.result) },
+                        )
 
-                    is SearchResult.Definition -> DefinitionRow(result)
+                        is SearchResult.Definition -> DefinitionRow(result)
 
-                    is SearchResult.SettingShortcut -> ResultRow(
-                        title = result.label,
-                        subtitle = "Settings",
-                        onClick = { onOpenSetting(result.action) },
-                    )
+                        is SearchResult.SettingShortcut -> ResultRow(
+                            title = result.label,
+                            subtitle = "Settings",
+                            onClick = { onOpenSetting(result.action) },
+                        )
 
-                    is SearchResult.WebSearch -> ResultRow(
-                        title = "Search the web for “${result.query}”",
-                        onClick = { onWebSearch(result.query) },
-                    )
+                        is SearchResult.WebSearch -> ResultRow(
+                            title = "Search the web for “${result.query}”",
+                            onClick = { onWebSearch(result.query) },
+                        )
+                    }
                 }
             }
         }

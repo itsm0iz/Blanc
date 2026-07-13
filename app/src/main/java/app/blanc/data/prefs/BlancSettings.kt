@@ -32,6 +32,7 @@ data class BlancSettings(
     val alignment: HomeAlignment = HomeAlignment.START,
     val theme: ThemeMode = ThemeMode.DARK,
     val showStatusBar: Boolean = false,
+    val animations: Boolean = true,
 ) {
     companion object {
         const val MAX_HOME_APPS = 8

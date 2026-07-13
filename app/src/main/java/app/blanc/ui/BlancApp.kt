@@ -19,6 +19,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.blanc.MainViewModel
 import app.blanc.ui.drawer.AppDrawerScreen
 import app.blanc.ui.home.HomeScreen
+import app.blanc.ui.motion.rememberMotionEnabled
 import app.blanc.ui.search.UniversalSearchScreen
 import app.blanc.ui.settings.SettingsScreen
 import app.blanc.ui.theme.BlancTheme
@@ -37,6 +38,7 @@ fun BlancApp(viewModel: MainViewModel) {
     val usageState by viewModel.usageState.collectAsStateWithLifecycle()
     val searchResults by viewModel.searchResults.collectAsStateWithLifecycle()
     val clipboard = LocalClipboardManager.current
+    val motionEnabled = rememberMotionEnabled(settings.animations)
 
     BlancTheme(themeMode = settings.theme) {
         val view = LocalView.current
@@ -72,6 +74,7 @@ fun BlancApp(viewModel: MainViewModel) {
                 is Screen.Drawer -> when (current.mode) {
                     is DrawerMode.Launch -> UniversalSearchScreen(
                         results = searchResults,
+                        motionEnabled = motionEnabled,
                         onQueryChange = { viewModel.onSearchQuery(it) },
                         onLaunchApp = {
                             viewModel.launchApp(it)
@@ -96,6 +99,7 @@ fun BlancApp(viewModel: MainViewModel) {
                         apps = apps,
                         mode = current.mode,
                         homeAppsCount = settings.homeApps.size,
+                        motionEnabled = motionEnabled,
                         onLaunch = {
                             viewModel.launchApp(it)
                             viewModel.goHome()
@@ -120,6 +124,7 @@ fun BlancApp(viewModel: MainViewModel) {
                     onCycleAlignment = { viewModel.cycleAlignment() },
                     onCycleTheme = { viewModel.cycleTheme() },
                     onToggleStatusBar = { viewModel.toggleStatusBar() },
+                    onToggleAnimations = { viewModel.toggleAnimations() },
                     onSetDefaultLauncher = { DefaultLauncher.request(view.context) },
                     onOpenUsage = { viewModel.openUsage() },
                 )

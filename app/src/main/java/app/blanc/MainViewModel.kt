@@ -145,6 +145,10 @@ class MainViewModel(
         viewModelScope.launch { settingsStore.setShowStatusBar(!settings.value.showStatusBar) }
     }
 
+    fun toggleAnimations() {
+        viewModelScope.launch { settingsStore.setAnimations(!settings.value.animations) }
+    }
+
     companion object {
         fun factory(context: Context): ViewModelProvider.Factory {
             val appContext = context.applicationContext

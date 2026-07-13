@@ -2,12 +2,13 @@ package app.blanc.ui.drawer
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -25,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.blanc.data.AppInfo
 import app.blanc.ui.DrawerMode
+import app.blanc.ui.motion.cascadeEnter
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -32,6 +34,7 @@ fun AppDrawerScreen(
     apps: List<AppInfo>,
     mode: DrawerMode,
     homeAppsCount: Int,
+    motionEnabled: Boolean,
     onLaunch: (AppInfo) -> Unit,
     onAssign: (Int, AppInfo) -> Unit,
     onRemove: (Int) -> Unit,
@@ -46,6 +49,7 @@ fun AppDrawerScreen(
     }
 
     val showRemove = mode is DrawerMode.AssignHome && mode.index < homeAppsCount
+    val cascade = motionEnabled && query.isEmpty()
 
     Column(
         modifier = Modifier
@@ -79,16 +83,17 @@ fun AppDrawerScreen(
                 }
             }
 
-            items(
+            itemsIndexed(
                 items = filtered,
-                key = { "${it.packageName}/${it.className}/${it.userSerial}" },
-            ) { app ->
+                key = { _, app -> "${app.packageName}/${app.className}/${app.userSerial}" },
+            ) { index, app ->
                 Text(
                     text = app.label,
                     fontSize = 20.sp,
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier
                         .fillMaxWidth()
+                        .cascadeEnter(index, cascade)
                         .combinedClickable(
                             onClick = {
                                 when (mode) {

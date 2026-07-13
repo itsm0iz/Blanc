@@ -29,6 +29,7 @@ fun SettingsScreen(
     onCycleAlignment: () -> Unit,
     onCycleTheme: () -> Unit,
     onToggleStatusBar: () -> Unit,
+    onToggleAnimations: () -> Unit,
     onSetDefaultLauncher: () -> Unit,
     onOpenUsage: () -> Unit,
 ) {
@@ -71,6 +72,12 @@ fun SettingsScreen(
             label = "Status bar",
             value = if (settings.showStatusBar) "On" else "Off",
             onClick = onToggleStatusBar,
+        )
+
+        SettingRow(
+            label = "Animations",
+            value = if (settings.animations) "On" else "Off",
+            onClick = onToggleAnimations,
         )
 
         SettingRow(
