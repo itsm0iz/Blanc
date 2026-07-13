@@ -17,6 +17,17 @@ android {
         versionName = "0.1.0"
     }
 
+    signingConfigs {
+        // Committed, non-secret debug key so every CI build shares one
+        // signature — sideloaded updates install cleanly without uninstalling.
+        getByName("debug") {
+            storeFile = file("../debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -27,6 +38,7 @@ android {
         }
         debug {
             applicationIdSuffix = ".debug"
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 

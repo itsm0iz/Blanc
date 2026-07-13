@@ -7,7 +7,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import app.blanc.ui.BlancApp
+import app.blanc.ui.CrashScreen
 import app.blanc.usage.UsageRecorderWorker
+import java.io.File
 
 class MainActivity : ComponentActivity() {
 
@@ -15,8 +17,20 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // If the previous run crashed, show the captured report instead of
+        // re-running the (crashing) UI. This breaks the crash loop and makes
+        // the error visible.
+        val crashFile = File(filesDir, BlancApplication.CRASH_FILE)
+        if (crashFile.exists()) {
+            val report = runCatching { crashFile.readText() }.getOrDefault("(crash report unreadable)")
+            runCatching { crashFile.delete() }
+            setContent { CrashScreen(report) }
+            return
+        }
+
         enableEdgeToEdge()
-        UsageRecorderWorker.schedule(applicationContext)
+        runCatching { UsageRecorderWorker.schedule(applicationContext) }
         setContent {
             BlancApp(viewModel)
         }
