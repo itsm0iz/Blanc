@@ -21,7 +21,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
@@ -97,7 +96,9 @@ fun AppDrawerScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .cascadeEnter(index, motionEnabled)
-                        .centerEmphasis(listState, index, motionEnabled)
+                        // Offset by the optional "remove" header so the emphasis
+                        // targets this row's true position in the lazy list.
+                        .centerEmphasis(listState, index + if (showRemove) 1 else 0, motionEnabled)
                         .combinedClickable(
                             onClick = {
                                 when (mode) {
