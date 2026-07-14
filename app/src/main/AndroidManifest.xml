@@ -36,6 +36,17 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.HOME" />
                 <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <!-- The actual "Blanc" app: its own launcher icon in the app drawer. -->
+        <activity
+            android:name=".DashboardActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.Blanc.App">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>

@@ -16,7 +16,4 @@ sealed interface Screen {
 
     /** The compact quick panel shown on home long-press. */
     data object QuickSettings : Screen
-
-    /** The full tabbed app: stats, home layout, and app preferences. */
-    data object Dashboard : Screen
 }

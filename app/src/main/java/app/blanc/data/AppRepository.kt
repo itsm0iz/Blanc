@@ -25,7 +25,6 @@ class AppRepository(context: Context) {
     private val appContext = context.applicationContext
     private val launcherApps = appContext.getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
     private val userManager = appContext.getSystemService(Context.USER_SERVICE) as UserManager
-    private val myPackage = appContext.packageName
 
     fun appsFlow(): Flow<List<AppInfo>> = callbackFlow {
         trySend(loadApps())
@@ -70,7 +69,6 @@ class AppRepository(context: Context) {
             }
             for (activity in activities) {
                 val packageName = activity.applicationInfo.packageName
-                if (packageName == myPackage) continue
                 apps.add(
                     AppInfo(
                         label = activity.label.toString(),

@@ -67,11 +67,6 @@ class MainViewModel(
         _screen.value = Screen.QuickSettings
     }
 
-    fun openDashboard() {
-        _screen.value = Screen.Dashboard
-        loadUsage()
-    }
-
     fun goHome() {
         _screen.value = Screen.Home
     }

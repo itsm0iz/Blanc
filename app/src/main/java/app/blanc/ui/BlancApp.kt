@@ -1,6 +1,7 @@
 package app.blanc.ui
 
 import android.app.Activity
+import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -19,18 +20,15 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.blanc.DashboardActivity
 import app.blanc.MainViewModel
-import app.blanc.ui.dashboard.DashboardScreen
 import app.blanc.ui.drawer.AppDrawerScreen
 import app.blanc.ui.home.HomeScreen
 import app.blanc.ui.motion.rememberMotionEnabled
 import app.blanc.ui.quicksettings.QuickSettingsScreen
 import app.blanc.ui.search.UniversalSearchScreen
 import app.blanc.ui.theme.BlancTheme
-import app.blanc.usage.UsagePermission
-import app.blanc.util.DefaultLauncher
 import app.blanc.util.openSettingsAction
-import app.blanc.util.openUrl
 import app.blanc.util.webSearch
 
 @Composable
@@ -38,8 +36,6 @@ fun BlancApp(viewModel: MainViewModel) {
     val screen by viewModel.screen.collectAsStateWithLifecycle()
     val apps by viewModel.apps.collectAsStateWithLifecycle()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
-    val usageGranted by viewModel.usageGranted.collectAsStateWithLifecycle()
-    val usageState by viewModel.usageState.collectAsStateWithLifecycle()
     val searchResults by viewModel.searchResults.collectAsStateWithLifecycle()
     val clipboard = LocalClipboardManager.current
     val motionEnabled = rememberMotionEnabled(settings.animations)
@@ -156,26 +152,11 @@ fun BlancApp(viewModel: MainViewModel) {
                         onAddHomeApp = { viewModel.openDrawer(DrawerMode.AssignHome(settings.homeApps.size)) },
                         onCycleAlignment = { viewModel.cycleAlignment() },
                         onCycleDim = { viewModel.cycleWallpaperDim() },
-                        onOpenDashboard = { viewModel.openDashboard() },
-                    )
-
-                    is Screen.Dashboard -> DashboardScreen(
-                        settings = settings,
-                        homeAppNames = homeAppNames,
-                        usageGranted = usageGranted,
-                        usageState = usageState,
-                        labelFor = { pkg -> apps.firstOrNull { it.packageName == pkg }?.label ?: pkg },
-                        onGrantUsage = { UsagePermission.requestAccess(view.context) },
-                        onEditHomeApp = { viewModel.openDrawer(DrawerMode.AssignHome(it)) },
-                        onAddHomeApp = { viewModel.openDrawer(DrawerMode.AssignHome(settings.homeApps.size)) },
-                        onCycleAlignment = { viewModel.cycleAlignment() },
-                        onCycleDim = { viewModel.cycleWallpaperDim() },
-                        onCycleTheme = { viewModel.cycleTheme() },
-                        onToggleStatusBar = { viewModel.toggleStatusBar() },
-                        onToggleAnimations = { viewModel.toggleAnimations() },
-                        onToggleHaptics = { viewModel.toggleHaptics() },
-                        onSetDefaultLauncher = { DefaultLauncher.request(view.context) },
-                        onOpenUrl = { view.context.openUrl(it) },
+                        onOpenDashboard = {
+                            view.context.startActivity(
+                                Intent(view.context, DashboardActivity::class.java),
+                            )
+                        },
                     )
                 }
             }
