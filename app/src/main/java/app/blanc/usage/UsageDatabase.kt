@@ -60,6 +60,9 @@ interface UsageDao {
             "GROUP BY packageName ORDER BY totalMs DESC"
     )
     suspend fun appTotals(startDay: Long, endDay: Long): List<AppTotal>
+
+    @Query("DELETE FROM daily_usage")
+    suspend fun clearAll()
 }
 
 @Database(entities = [DailyUsage::class], version = 1, exportSchema = false)

@@ -1,5 +1,6 @@
 package app.blanc.usage
 
+import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import kotlinx.coroutines.Dispatchers
@@ -55,6 +56,8 @@ class UsageRepository(context: Context) {
     /** Backfill the last [days] days of per-app usage into the local DB. */
     suspend fun record(days: Int = 7) = withContext(Dispatchers.IO) {
         if (!UsagePermission.isGranted(appContext)) return@withContext
+        purgeLegacyOverCountOnce()
+
         val now = System.currentTimeMillis()
         val midnight = startOfToday()
         val rows = ArrayList<DailyUsage>()
@@ -64,21 +67,73 @@ class UsageRepository(context: Context) {
             val dayEnd = min(dayStart + ONE_DAY_MS, now)
             if (dayEnd <= dayStart) continue
 
-            val aggregated = try {
-                usageStatsManager.queryAndAggregateUsageStats(dayStart, dayEnd)
-            } catch (e: Exception) {
-                continue
-            } ?: continue
-
             val epochDay = epochDayOf(dayStart)
-            for ((packageName, stats) in aggregated) {
-                val foreground = stats.totalTimeInForeground
+            for ((packageName, foreground) in foregroundTimeByPackage(dayStart, dayEnd)) {
                 if (foreground <= 0) continue
                 rows.add(DailyUsage(epochDay, packageName, foreground))
             }
         }
 
         if (rows.isNotEmpty()) dao.upsertAll(rows)
+    }
+
+    /**
+     * Foreground time per package within `[start, end)`, computed from raw usage
+     * events (resume/pause pairs) and strictly clipped to the window.
+     *
+     * This mirrors how the system's own Digital Wellbeing measures screen time.
+     * Unlike `queryAndAggregateUsageStats` — whose per-app `totalTimeInForeground`
+     * reflects an entire daily bucket that doesn't align to local midnight, and so
+     * leaks the previous evening's use into "today" — every interval here is bounded
+     * by the window, so a partial day can never report more time than has elapsed.
+     */
+    @Suppress("DEPRECATION") // MOVE_TO_* share values with ACTIVITY_* and work on all API levels.
+    private fun foregroundTimeByPackage(start: Long, end: Long): Map<String, Long> {
+        val events = try {
+            usageStatsManager.queryEvents(start, end)
+        } catch (e: Exception) {
+            return emptyMap()
+        } ?: return emptyMap()
+
+        val totals = HashMap<String, Long>()
+        val resumedAt = HashMap<String, Long>()
+        val event = UsageEvents.Event()
+
+        while (events.hasNextEvent()) {
+            events.getNextEvent(event)
+            val pkg = event.packageName ?: continue
+            when (event.eventType) {
+                UsageEvents.Event.MOVE_TO_FOREGROUND ->
+                    resumedAt[pkg] = event.timeStamp.coerceAtLeast(start)
+
+                UsageEvents.Event.MOVE_TO_BACKGROUND -> {
+                    val began = resumedAt.remove(pkg) ?: continue
+                    val delta = event.timeStamp.coerceAtMost(end) - began
+                    if (delta > 0) totals[pkg] = (totals[pkg] ?: 0L) + delta
+                }
+            }
+        }
+
+        // Anything still in the foreground when the window ends (e.g. the app
+        // open right now) is counted up to the window's edge.
+        for ((pkg, began) in resumedAt) {
+            val delta = end - began
+            if (delta > 0) totals[pkg] = (totals[pkg] ?: 0L) + delta
+        }
+
+        return totals
+    }
+
+    /**
+     * One-time wipe of history recorded by the old, over-counting method so the
+     * stats screen doesn't keep showing inflated pre-fix days. Recording then
+     * rebuilds the recent window from the accurate event-based measurement.
+     */
+    private suspend fun purgeLegacyOverCountOnce() {
+        val prefs = appContext.getSharedPreferences(META_PREFS, Context.MODE_PRIVATE)
+        if (prefs.getBoolean(KEY_PURGED_LEGACY, false)) return
+        dao.clearAll()
+        prefs.edit().putBoolean(KEY_PURGED_LEGACY, true).apply()
     }
 
     suspend fun report(rangeDays: Int): UsageReport = withContext(Dispatchers.IO) {
@@ -176,5 +231,7 @@ class UsageRepository(context: Context) {
 
     private companion object {
         const val ONE_DAY_MS = 24L * 60 * 60 * 1000
+        const val META_PREFS = "blanc_usage_meta"
+        const val KEY_PURGED_LEGACY = "purged_legacy_overcount"
     }
 }
