@@ -77,6 +77,7 @@ fun UniversalSearchScreen(
     val tick = rememberHapticTick(hapticsEnabled)
     var expandedDefinition by remember { mutableStateOf<SearchResult.Definition?>(null) }
     val focusManager = LocalFocusManager.current
+    val cascadeSeen = remember { mutableSetOf<Int>() }
 
     fun submit() {
         val topApp = results.firstOrNull { it is SearchResult.App } as? SearchResult.App
@@ -147,7 +148,7 @@ fun UniversalSearchScreen(
                     Box(
                         Modifier
                             .fillMaxWidth()
-                            .cascadeEnter(index, motionEnabled)
+                            .cascadeEnter(index, motionEnabled, cascadeSeen)
                             .centerEmphasis(listState, index, motionEnabled),
                     ) {
                         when (result) {

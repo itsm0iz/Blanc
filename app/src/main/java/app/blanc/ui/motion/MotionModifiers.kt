@@ -71,18 +71,24 @@ fun rememberHapticTick(enabled: Boolean): () -> Unit {
 }
 
 /**
- * Staggered fade-and-slide-up entrance for a list line. Cheap: only a
- * graphicsLayer alpha + translation, so nothing relayouts. [index] drives the
- * stagger; only the first [BlancMotion.MAX_CASCADE_ITEMS] lines animate.
+ * Staggered fade-and-slide-up entrance for a list line, played once per line.
+ * Cheap: only a graphicsLayer alpha + translation, so nothing relayouts.
+ *
+ * Every line animates on its first appearance — not just the first few — but the
+ * stagger delay is capped at [BlancMotion.CASCADE_STAGGER_CAP] steps so a long
+ * list has no laggy tail (later lines simply arrive together). [seen] records
+ * which indices have already played, so scrolling a line off-screen and back
+ * doesn't replay it.
  */
-fun Modifier.cascadeEnter(index: Int, enabled: Boolean): Modifier = composed {
-    val active = enabled && index < BlancMotion.MAX_CASCADE_ITEMS
-    val progress = remember { Animatable(if (active) 0f else 1f) }
+fun Modifier.cascadeEnter(index: Int, enabled: Boolean, seen: MutableSet<Int>): Modifier = composed {
+    val animate = enabled && index !in seen
+    val progress = remember { Animatable(if (animate) 0f else 1f) }
     val slidePx = with(LocalDensity.current) { BlancMotion.SlideDistance.toPx() }
-    LaunchedEffect(active) {
-        if (active) {
-            progress.snapTo(0f)
-            delay(index.toLong() * BlancMotion.STAGGER_MS)
+    LaunchedEffect(Unit) {
+        if (animate) {
+            seen.add(index)
+            val steps = index.coerceAtMost(BlancMotion.CASCADE_STAGGER_CAP)
+            delay(steps.toLong() * BlancMotion.STAGGER_MS)
             progress.animateTo(1f, BlancMotion.ContentSpring)
         } else {
             progress.snapTo(1f)

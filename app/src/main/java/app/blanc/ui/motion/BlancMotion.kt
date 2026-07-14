@@ -15,8 +15,8 @@ object BlancMotion {
     /** Delay between consecutive lines in the staggered cascade. */
     const val STAGGER_MS = 12L
 
-    /** Only the first N items in a list cascade; the rest appear instantly. */
-    const val MAX_CASCADE_ITEMS = 8
+    /** Beyond this many leading lines, cascade items share the final stagger delay. */
+    const val CASCADE_STAGGER_CAP = 8
 
     /** How far each line slides up as it fades in. */
     val SlideDistance = 10.dp

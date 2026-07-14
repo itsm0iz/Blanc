@@ -51,6 +51,7 @@ fun AppDrawerScreen(
 
     val showRemove = mode is DrawerMode.AssignHome && mode.index < homeAppsCount
     val listState = rememberLazyListState()
+    val cascadeSeen = remember { mutableSetOf<Int>() }
 
     Column(
         modifier = Modifier
@@ -95,7 +96,7 @@ fun AppDrawerScreen(
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .cascadeEnter(index, motionEnabled)
+                        .cascadeEnter(index, motionEnabled, cascadeSeen)
                         // Offset by the optional "remove" header so the emphasis
                         // targets this row's true position in the lazy list.
                         .centerEmphasis(listState, index + if (showRemove) 1 else 0, motionEnabled)
