@@ -3,6 +3,8 @@ package app.blanc.data
 import android.content.ComponentName
 import android.content.Context
 import android.content.pm.LauncherApps
+import android.os.Handler
+import android.os.Looper
 import android.os.Process
 import android.os.UserHandle
 import android.os.UserManager
@@ -50,7 +52,10 @@ class AppRepository(context: Context) {
             }
         }
 
-        launcherApps.registerCallback(callback)
+        // registerCallback builds a Handler on the calling thread, so it must
+        // run against a Looper. This flow is on Dispatchers.IO (no Looper), so
+        // hand it an explicit main-thread Handler for callback delivery.
+        launcherApps.registerCallback(callback, Handler(Looper.getMainLooper()))
         awaitClose { launcherApps.unregisterCallback(callback) }
     }.flowOn(Dispatchers.IO)
 
