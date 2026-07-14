@@ -2,9 +2,8 @@ package app.blanc.ui
 
 import android.app.Activity
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -54,10 +53,8 @@ fun BlancApp(viewModel: MainViewModel) {
             }
         }
 
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background,
-        ) {
+        // No solid fill — the transparent window shows the system wallpaper.
+        Box(modifier = Modifier.fillMaxSize()) {
             BackHandler(enabled = screen !is Screen.Home) { viewModel.goHome() }
 
             when (val current = screen) {
