@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import app.blanc.data.AppInfo
 import app.blanc.ui.DrawerMode
+import app.blanc.ui.motion.cascadeEnter
 import app.blanc.ui.motion.centerEmphasis
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -95,6 +96,7 @@ fun AppDrawerScreen(
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier
                         .fillMaxWidth()
+                        .cascadeEnter(index, motionEnabled)
                         .centerEmphasis(listState, index, motionEnabled)
                         .combinedClickable(
                             onClick = {
