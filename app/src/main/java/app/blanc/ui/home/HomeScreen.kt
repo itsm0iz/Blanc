@@ -26,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -111,27 +112,6 @@ fun HomeScreen(
                 )
             }
         }
-
-        if (settings.homeApps.isEmpty()) {
-            Text(
-                text = "Swipe up for apps\nLong-press for settings",
-                fontSize = 15.sp,
-                textAlign = textAlign,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                modifier = Modifier.fillMaxWidth(),
-            )
-        } else if (settings.homeApps.size < BlancSettings.MAX_HOME_APPS) {
-            Text(
-                text = "+ add app",
-                fontSize = 15.sp,
-                textAlign = textAlign,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .combinedClickable(onClick = { onAddSlot() })
-                    .padding(vertical = 10.dp),
-            )
-        }
     }
 }
 
@@ -155,6 +135,7 @@ private fun HomeAppText(
     Text(
         text = label,
         fontSize = 22.sp,
+        fontWeight = FontWeight.Bold,
         textAlign = textAlign,
         letterSpacing = letterSpacing.sp,
         color = MaterialTheme.colorScheme.onBackground,

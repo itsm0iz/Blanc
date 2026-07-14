@@ -2,13 +2,13 @@ package app.blanc.ui.drawer
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -24,9 +24,10 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
 import app.blanc.data.AppInfo
 import app.blanc.ui.DrawerMode
-import app.blanc.ui.motion.cascadeEnter
+import app.blanc.ui.motion.centerEmphasis
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -49,7 +50,7 @@ fun AppDrawerScreen(
     }
 
     val showRemove = mode is DrawerMode.AssignHome && mode.index < homeAppsCount
-    val cascade = motionEnabled && query.isEmpty()
+    val listState = rememberLazyListState()
 
     Column(
         modifier = Modifier
@@ -66,7 +67,7 @@ fun AppDrawerScreen(
                 .focusRequester(focusRequester),
         )
 
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
             if (showRemove) {
                 item(key = "remove") {
                     Text(
@@ -90,10 +91,11 @@ fun AppDrawerScreen(
                 Text(
                     text = app.label,
                     fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .cascadeEnter(index, cascade)
+                        .centerEmphasis(listState, index, motionEnabled)
                         .combinedClickable(
                             onClick = {
                                 when (mode) {

@@ -36,7 +36,7 @@ data class BlancSettings(
     val haptics: Boolean = true,
 ) {
     companion object {
-        const val MAX_HOME_APPS = 8
+        const val MAX_HOME_APPS = 6
         val DEFAULT = BlancSettings()
     }
 }

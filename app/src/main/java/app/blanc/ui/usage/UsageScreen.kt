@@ -132,6 +132,7 @@ private fun UsageContent(state: UsageState, labelFor: (String) -> String) {
                 Text(
                     text = labelFor(app.packageName),
                     fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground,
                 )
                 Text(

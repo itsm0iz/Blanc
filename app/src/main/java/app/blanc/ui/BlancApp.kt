@@ -4,6 +4,7 @@ import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -54,7 +55,13 @@ fun BlancApp(viewModel: MainViewModel) {
         }
 
         // No solid fill — the transparent window shows the system wallpaper.
-        Box(modifier = Modifier.fillMaxSize()) {
+        // systemBarsPadding keeps content clear of the status/nav bars while
+        // the wallpaper still fills the whole screen behind it.
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .systemBarsPadding(),
+        ) {
             BackHandler(enabled = screen !is Screen.Home) { viewModel.goHome() }
 
             when (val current = screen) {

@@ -122,6 +122,7 @@ private fun SettingRow(label: String, value: String, onClick: () -> Unit) {
         Text(
             text = label,
             fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground,
         )
         if (value.isNotEmpty()) {

@@ -5,6 +5,7 @@ import android.provider.Settings
 import android.view.HapticFeedbackConstants
 import android.view.WindowManager
 import androidx.compose.animation.core.Animatable
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -16,6 +17,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import kotlinx.coroutines.delay
+import kotlin.math.abs
 
 /**
  * Whether Blanc should animate right now. False when the user turned animations
@@ -89,6 +91,29 @@ fun Modifier.cascadeEnter(index: Int, enabled: Boolean): Modifier = composed {
     graphicsLayer {
         alpha = progress.value
         translationY = (1f - progress.value) * slidePx
+    }
+}
+
+/**
+ * Emphasizes the row nearest the list's vertical center — full size and opaque
+ * in the middle, gently smaller and dimmer toward the edges — so scrolling feels
+ * alive. Pure graphicsLayer (scale + alpha), recomputed from scroll state each
+ * frame; no relayout. Scales from the left edge so left-aligned labels stay put.
+ */
+fun Modifier.centerEmphasis(listState: LazyListState, index: Int, enabled: Boolean): Modifier {
+    if (!enabled) return this
+    return graphicsLayer {
+        val info = listState.layoutInfo
+        val item = info.visibleItemsInfo.firstOrNull { it.index == index } ?: return@graphicsLayer
+        val viewportCenter = (info.viewportStartOffset + info.viewportEndOffset) / 2f
+        val itemCenter = item.offset + item.size / 2f
+        val maxDistance = ((info.viewportEndOffset - info.viewportStartOffset) / 2f).coerceAtLeast(1f)
+        val proximity = (1f - abs(itemCenter - viewportCenter) / maxDistance).coerceIn(0f, 1f)
+        val scale = 0.93f + 0.07f * proximity
+        scaleX = scale
+        scaleY = scale
+        alpha = 0.72f + 0.28f * proximity
+        transformOrigin = TransformOrigin(0f, 0.5f)
     }
 }
 

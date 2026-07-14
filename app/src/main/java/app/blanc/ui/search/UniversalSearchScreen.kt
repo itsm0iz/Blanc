@@ -10,8 +10,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -23,16 +26,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.blanc.data.AppInfo
 import app.blanc.search.SearchResult
-import app.blanc.ui.motion.cascadeEnter
+import app.blanc.ui.motion.centerEmphasis
 import app.blanc.ui.motion.overshootEnter
 import app.blanc.ui.motion.rememberHapticTick
 
@@ -51,6 +54,7 @@ fun UniversalSearchScreen(
 ) {
     var query by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
+    val listState = rememberLazyListState()
     val tick = rememberHapticTick(hapticsEnabled)
 
     fun submit() {
@@ -61,16 +65,22 @@ fun UniversalSearchScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 20.dp, vertical = 24.dp),
+            .padding(horizontal = 24.dp, vertical = 20.dp),
     ) {
-        OutlinedTextField(
+        // Borderless search: just large bold text with a blinking cursor.
+        BasicTextField(
             value = query,
             onValueChange = {
                 query = it
                 onQueryChange(it)
             },
             singleLine = true,
-            placeholder = { Text("Search apps, math, words, settings…") },
+            textStyle = TextStyle(
+                color = MaterialTheme.colorScheme.onBackground,
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Bold,
+            ),
+            cursorBrush = SolidColor(MaterialTheme.colorScheme.onBackground),
             keyboardOptions = KeyboardOptions(
                 capitalization = KeyboardCapitalization.None,
                 imeAction = ImeAction.Search,
@@ -80,13 +90,29 @@ fun UniversalSearchScreen(
                 .fillMaxWidth()
                 .overshootEnter(motionEnabled)
                 .focusRequester(focusRequester),
+            decorationBox = { innerTextField ->
+                Box {
+                    if (query.isEmpty()) {
+                        Text(
+                            text = "Search",
+                            fontSize = 26.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.35f),
+                        )
+                    }
+                    innerTextField()
+                }
+            },
         )
 
-        val cascade = motionEnabled && query.isEmpty()
-
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = 12.dp),
+        ) {
             itemsIndexed(results) { index, result ->
-                Box(Modifier.fillMaxWidth().cascadeEnter(index, cascade)) {
+                Box(Modifier.fillMaxWidth().centerEmphasis(listState, index, motionEnabled)) {
                     when (result) {
                         is SearchResult.App -> ResultRow(
                             title = result.app.label,
@@ -146,6 +172,7 @@ private fun ResultRow(
             Text(
                 text = title,
                 fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground,
             )
             if (subtitle != null) {
@@ -169,7 +196,7 @@ private fun DefinitionRow(definition: SearchResult.Definition) {
         Text(
             text = definition.word,
             fontSize = 20.sp,
-            fontWeight = FontWeight.Medium,
+            fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground,
         )
         Text(
