@@ -8,20 +8,33 @@ import java.util.Calendar
 import java.util.concurrent.TimeUnit
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 
-/** A snapshot of usage data for the usage-monitor screen. */
-data class UsageState(
+/** One category's total time over the report range. */
+data class CategorySlice(val category: AppCategory, val totalMs: Long)
+
+/** A full snapshot for the stats screen over a chosen range of days. */
+data class UsageReport(
+    val rangeDays: Int,
     val todayMs: Long,
+    val rangeTotalMs: Long,
     val avgPerDayMs: Long,
-    val projectedYearMs: Long,
-    val last7Days: List<DayTotal>,
+    val dailyTotals: List<DayTotal>,
+    val categories: List<CategorySlice>,
     val topApps: List<AppTotal>,
-)
+    val thisWeekMs: Long,
+    val lastWeekMs: Long,
+    val weekChangePercent: Int,
+    val projectedYearMs: Long,
+) {
+    val socialsWeekMs: Long
+        get() = categories.firstOrNull { it.category == AppCategory.SOCIAL }?.totalMs ?: 0L
+}
 
 /**
- * Records daily foreground-time rollups into [UsageDatabase] and derives the
- * [UsageState] shown to the user. Recording pulls from the system's recent
- * window (a handful of days); the local DB is what accumulates long-term.
+ * Records daily foreground-time rollups into [UsageDatabase] and derives a
+ * [UsageReport]. Recording pulls from the system's recent window; the local DB
+ * accumulates long-term history the system discards.
  */
 class UsageRepository(context: Context) {
 
@@ -29,7 +42,7 @@ class UsageRepository(context: Context) {
     private val dao = UsageDatabase.get(appContext).usageDao()
     private val usageStatsManager =
         appContext.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
-    private val myPackage = appContext.packageName
+    private val categoryResolver = CategoryResolver(appContext)
 
     /** Backfill the last [days] days of per-app usage into the local DB. */
     suspend fun record(days: Int = 7) = withContext(Dispatchers.IO) {
@@ -52,7 +65,7 @@ class UsageRepository(context: Context) {
             val epochDay = epochDayOf(dayStart)
             for ((packageName, stats) in aggregated) {
                 val foreground = stats.totalTimeInForeground
-                if (foreground <= 0 || packageName == myPackage) continue
+                if (foreground <= 0) continue
                 rows.add(DailyUsage(epochDay, packageName, foreground))
             }
         }
@@ -60,29 +73,49 @@ class UsageRepository(context: Context) {
         if (rows.isNotEmpty()) dao.upsertAll(rows)
     }
 
-    /** Compute the current [UsageState] from the local DB. */
-    suspend fun state(): UsageState = withContext(Dispatchers.IO) {
+    suspend fun report(rangeDays: Int): UsageReport = withContext(Dispatchers.IO) {
         val todayEpoch = epochDayOf(startOfToday())
-        val weekStart = todayEpoch - 6
+        val rangeStart = todayEpoch - (rangeDays - 1)
 
-        val dailyTotals = dao.dailyTotals(weekStart, todayEpoch)
-        val byDay = dailyTotals.associateBy { it.epochDay }
+        val dailyByDay = dao.dailyTotals(rangeStart, todayEpoch).associateBy { it.epochDay }
+        val daily = (rangeStart..todayEpoch).map { day -> dailyByDay[day] ?: DayTotal(day, 0L) }
+        val rangeTotal = daily.sumOf { it.totalMs }
+        val daysWithData = daily.count { it.totalMs > 0 }
+        val avgPerDay = rangeTotal / max(1, daysWithData)
 
-        // Fill every day in the window so the chart has 7 bars.
-        val last7 = (weekStart..todayEpoch).map { day ->
-            byDay[day] ?: DayTotal(day, 0L)
+        val appTotals = dao.appTotals(rangeStart, todayEpoch)
+        val categoryTotals = HashMap<AppCategory, Long>()
+        for (app in appTotals) {
+            val category = categoryResolver.categoryOf(app.packageName)
+            categoryTotals[category] = (categoryTotals[category] ?: 0L) + app.totalMs
+        }
+        val categories = categoryTotals
+            .map { CategorySlice(it.key, it.value) }
+            .filter { it.totalMs > 0 }
+            .sortedByDescending { it.totalMs }
+
+        // Week-over-week using the last 14 days.
+        val twoWeeks = dao.dailyTotals(todayEpoch - 13, todayEpoch).associateBy { it.epochDay }
+        val thisWeek = (todayEpoch - 6..todayEpoch).sumOf { twoWeeks[it]?.totalMs ?: 0L }
+        val lastWeek = (todayEpoch - 13..todayEpoch - 7).sumOf { twoWeeks[it]?.totalMs ?: 0L }
+        val weekChange = when {
+            lastWeek > 0 -> (((thisWeek - lastWeek).toDouble() / lastWeek) * 100).roundToInt()
+            thisWeek > 0 -> 100
+            else -> 0
         }
 
-        val daysWithData = dailyTotals.count { it.totalMs > 0 }
-        val weekSum = dailyTotals.sumOf { it.totalMs }
-        val avgPerDay = weekSum / max(1, daysWithData)
-
-        UsageState(
-            todayMs = byDay[todayEpoch]?.totalMs ?: 0L,
+        UsageReport(
+            rangeDays = rangeDays,
+            todayMs = dailyByDay[todayEpoch]?.totalMs ?: 0L,
+            rangeTotalMs = rangeTotal,
             avgPerDayMs = avgPerDay,
+            dailyTotals = daily,
+            categories = categories,
+            topApps = appTotals.take(8),
+            thisWeekMs = thisWeek,
+            lastWeekMs = lastWeek,
+            weekChangePercent = weekChange,
             projectedYearMs = avgPerDay * 365,
-            last7Days = last7,
-            topApps = dao.topApps(weekStart, todayEpoch, 8),
         )
     }
 

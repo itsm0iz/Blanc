@@ -30,7 +30,7 @@ import app.blanc.ui.components.SettingRow
 import app.blanc.ui.quicksettings.alignmentLabel
 import app.blanc.ui.quicksettings.dimLabel
 import app.blanc.ui.usage.UsageScreen
-import app.blanc.usage.UsageState
+import app.blanc.usage.UsageReport
 
 private const val GITHUB_URL = "https://github.com/itsm0iz/Blanc"
 
@@ -39,9 +39,11 @@ fun DashboardScreen(
     settings: BlancSettings,
     homeAppNames: List<String>,
     usageGranted: Boolean,
-    usageState: UsageState?,
+    usageReport: UsageReport?,
+    usageRangeDays: Int,
     labelFor: (String) -> String,
     onGrantUsage: () -> Unit,
+    onUsageRangeChange: (Int) -> Unit,
     swipeLeftName: String,
     swipeRightName: String,
     onEditHomeApp: (Int) -> Unit,
@@ -86,9 +88,11 @@ fun DashboardScreen(
             when (tab) {
                 0 -> UsageScreen(
                     granted = usageGranted,
-                    state = usageState,
+                    report = usageReport,
+                    rangeDays = usageRangeDays,
                     labelFor = labelFor,
                     onGrantAccess = onGrantUsage,
+                    onRangeChange = onUsageRangeChange,
                 )
 
                 1 -> HomeTab(

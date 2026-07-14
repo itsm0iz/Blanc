@@ -47,7 +47,8 @@ fun DashboardApp(viewModel: MainViewModel, onClose: () -> Unit) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val apps by viewModel.apps.collectAsStateWithLifecycle()
     val usageGranted by viewModel.usageGranted.collectAsStateWithLifecycle()
-    val usageState by viewModel.usageState.collectAsStateWithLifecycle()
+    val usageReport by viewModel.usageReport.collectAsStateWithLifecycle()
+    val usageRangeDays by viewModel.usageRangeDays.collectAsStateWithLifecycle()
     val motionEnabled = rememberMotionEnabled(settings.animations)
 
     var pickTarget by remember { mutableStateOf<PickTarget?>(null) }
@@ -102,9 +103,11 @@ fun DashboardApp(viewModel: MainViewModel, onClose: () -> Unit) {
                             settings = settings,
                             homeAppNames = homeAppNames,
                             usageGranted = usageGranted,
-                            usageState = usageState,
+                            usageReport = usageReport,
+                            usageRangeDays = usageRangeDays,
                             labelFor = { pkg -> apps.firstOrNull { it.packageName == pkg }?.label ?: pkg },
                             onGrantUsage = { UsagePermission.requestAccess(view.context) },
+                            onUsageRangeChange = { viewModel.setUsageRange(it) },
                             swipeLeftName = nameOf(settings.swipeLeftApp),
                             swipeRightName = nameOf(settings.swipeRightApp),
                             onEditHomeApp = { pickTarget = PickTarget.HomeSlot(it) },

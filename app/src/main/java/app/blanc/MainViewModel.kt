@@ -19,8 +19,8 @@ import app.blanc.search.SearchResult
 import app.blanc.ui.DrawerMode
 import app.blanc.ui.Screen
 import app.blanc.usage.UsagePermission
+import app.blanc.usage.UsageReport
 import app.blanc.usage.UsageRepository
-import app.blanc.usage.UsageState
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -49,8 +49,11 @@ class MainViewModel(
     private val _usageGranted = MutableStateFlow(false)
     val usageGranted: StateFlow<Boolean> = _usageGranted.asStateFlow()
 
-    private val _usageState = MutableStateFlow<UsageState?>(null)
-    val usageState: StateFlow<UsageState?> = _usageState.asStateFlow()
+    private val _usageReport = MutableStateFlow<UsageReport?>(null)
+    val usageReport: StateFlow<UsageReport?> = _usageReport.asStateFlow()
+
+    private val _usageRangeDays = MutableStateFlow(30)
+    val usageRangeDays: StateFlow<Int> = _usageRangeDays.asStateFlow()
 
     private val searchEngine = SearchEngine(Dictionary(appContext))
     private val _searchResults = MutableStateFlow<List<SearchResult>>(emptyList())
@@ -71,15 +74,21 @@ class MainViewModel(
         _screen.value = Screen.Home
     }
 
+    fun setUsageRange(days: Int) {
+        if (_usageRangeDays.value == days) return
+        _usageRangeDays.value = days
+        loadUsage()
+    }
+
     fun loadUsage() {
         viewModelScope.launch {
             val granted = UsagePermission.isGranted(appContext)
             _usageGranted.value = granted
             if (granted) {
                 usageRepository.record()
-                _usageState.value = usageRepository.state()
+                _usageReport.value = usageRepository.report(_usageRangeDays.value)
             } else {
-                _usageState.value = null
+                _usageReport.value = null
             }
         }
     }

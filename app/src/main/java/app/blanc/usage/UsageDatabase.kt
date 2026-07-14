@@ -53,6 +53,13 @@ interface UsageDao {
             "GROUP BY packageName ORDER BY totalMs DESC LIMIT :limit"
     )
     suspend fun topApps(startDay: Long, endDay: Long, limit: Int): List<AppTotal>
+
+    @Query(
+        "SELECT packageName, SUM(totalMs) AS totalMs FROM daily_usage " +
+            "WHERE epochDay BETWEEN :startDay AND :endDay " +
+            "GROUP BY packageName ORDER BY totalMs DESC"
+    )
+    suspend fun appTotals(startDay: Long, endDay: Long): List<AppTotal>
 }
 
 @Database(entities = [DailyUsage::class], version = 1, exportSchema = false)
