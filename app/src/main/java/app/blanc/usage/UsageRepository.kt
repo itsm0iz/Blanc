@@ -78,14 +78,20 @@ class UsageRepository(context: Context) {
     }
 
     /**
-     * Foreground time per package within `[start, end)`, computed from raw usage
-     * events (resume/pause pairs) and strictly clipped to the window.
+     * Foreground (on-screen) time per package within `[start, end)`, computed
+     * from raw usage events and strictly clipped to the window.
      *
-     * This mirrors how the system's own Digital Wellbeing measures screen time.
-     * Unlike `queryAndAggregateUsageStats` — whose per-app `totalTimeInForeground`
-     * reflects an entire daily bucket that doesn't align to local midnight, and so
-     * leaks the previous evening's use into "today" — every interval here is bounded
-     * by the window, so a partial day can never report more time than has elapsed.
+     * The model mirrors how the system's own Digital Wellbeing measures screen
+     * time, and holds to two facts about a phone: only one app is visible at a
+     * time, and nothing is visible while the screen is off. So the "current"
+     * foreground app is closed out when another app comes forward, when it moves
+     * to the background, or when the screen turns off / locks. Without the
+     * screen-off and hand-off closes, a background app that briefly flashes an
+     * activity (e.g. an alarm) but never logs a matching background event would
+     * be counted as foreground for hours — the runaway this replaces.
+     *
+     * Every interval is bounded by the window, so a partial day can never report
+     * more time than has actually elapsed.
      */
     @Suppress("DEPRECATION") // MOVE_TO_* share values with ACTIVITY_* and work on all API levels.
     private fun foregroundTimeByPackage(start: Long, end: Long): Map<String, Long> {
@@ -96,30 +102,41 @@ class UsageRepository(context: Context) {
         } ?: return emptyMap()
 
         val totals = HashMap<String, Long>()
-        val resumedAt = HashMap<String, Long>()
+        var currentPkg: String? = null
+        var currentSince = start
         val event = UsageEvents.Event()
+
+        fun close(at: Long) {
+            val pkg = currentPkg ?: return
+            val delta = at.coerceIn(start, end) - currentSince
+            if (delta > 0) totals[pkg] = (totals[pkg] ?: 0L) + delta
+            currentPkg = null
+        }
 
         while (events.hasNextEvent()) {
             events.getNextEvent(event)
-            val pkg = event.packageName ?: continue
             when (event.eventType) {
-                UsageEvents.Event.MOVE_TO_FOREGROUND ->
-                    resumedAt[pkg] = event.timeStamp.coerceAtLeast(start)
-
-                UsageEvents.Event.MOVE_TO_BACKGROUND -> {
-                    val began = resumedAt.remove(pkg) ?: continue
-                    val delta = event.timeStamp.coerceAtMost(end) - began
-                    if (delta > 0) totals[pkg] = (totals[pkg] ?: 0L) + delta
+                UsageEvents.Event.MOVE_TO_FOREGROUND -> {
+                    val pkg = event.packageName
+                    if (pkg != null && pkg != currentPkg) {
+                        close(event.timeStamp)          // previous app lost the screen
+                        currentPkg = pkg
+                        currentSince = event.timeStamp.coerceIn(start, end)
+                    }
                 }
+
+                UsageEvents.Event.MOVE_TO_BACKGROUND ->
+                    if (event.packageName == currentPkg) close(event.timeStamp)
+
+                UsageEvents.Event.SCREEN_NON_INTERACTIVE,
+                UsageEvents.Event.KEYGUARD_SHOWN,
+                UsageEvents.Event.DEVICE_SHUTDOWN -> close(event.timeStamp)
             }
         }
 
-        // Anything still in the foreground when the window ends (e.g. the app
-        // open right now) is counted up to the window's edge.
-        for ((pkg, began) in resumedAt) {
-            val delta = end - began
-            if (delta > 0) totals[pkg] = (totals[pkg] ?: 0L) + delta
-        }
+        // Whatever is still on screen at the window's edge (e.g. the app open
+        // right now) is counted up to that edge.
+        close(end)
 
         return totals
     }
@@ -232,6 +249,8 @@ class UsageRepository(context: Context) {
     private companion object {
         const val ONE_DAY_MS = 24L * 60 * 60 * 1000
         const val META_PREFS = "blanc_usage_meta"
-        const val KEY_PURGED_LEGACY = "purged_legacy_overcount"
+        // Bumped when the measurement changes so stale, mis-measured history is
+        // wiped once and rebuilt with the current method.
+        const val KEY_PURGED_LEGACY = "purged_overcount_v2"
     }
 }
