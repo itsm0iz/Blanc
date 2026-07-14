@@ -199,6 +199,13 @@ class UsageRepository(context: Context) {
         )
     }
 
+    /** Per-app foreground totals over the last [rangeDays] days, most-used first. */
+    suspend fun appUsage(rangeDays: Int): List<AppTotal> = withContext(Dispatchers.IO) {
+        val todayEpoch = epochDayOf(startOfToday())
+        val rangeStart = todayEpoch - (rangeDays - 1)
+        dao.appTotals(rangeStart, todayEpoch)
+    }
+
     /**
      * The minimal, self-contained signals the nudge engine reasons about. Kept
      * independent of the currently-selected report range so a background worker

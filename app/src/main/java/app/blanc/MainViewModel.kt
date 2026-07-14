@@ -18,6 +18,7 @@ import app.blanc.search.SearchEngine
 import app.blanc.search.SearchResult
 import app.blanc.ui.DrawerMode
 import app.blanc.ui.Screen
+import app.blanc.usage.AppTotal
 import app.blanc.usage.UsagePermission
 import app.blanc.usage.UsageReport
 import app.blanc.usage.UsageRepository
@@ -55,6 +56,14 @@ class MainViewModel(
     private val _usageRangeDays = MutableStateFlow(30)
     val usageRangeDays: StateFlow<Int> = _usageRangeDays.asStateFlow()
 
+    // The "Most used" list has its own range (default: today) so per-app usage
+    // can be inspected for a single day independently of the charts above.
+    private val _topRangeDays = MutableStateFlow(1)
+    val topRangeDays: StateFlow<Int> = _topRangeDays.asStateFlow()
+
+    private val _topApps = MutableStateFlow<List<AppTotal>>(emptyList())
+    val topApps: StateFlow<List<AppTotal>> = _topApps.asStateFlow()
+
     private val searchEngine = SearchEngine(Dictionary(appContext))
     private val _searchResults = MutableStateFlow<List<SearchResult>>(emptyList())
     val searchResults: StateFlow<List<SearchResult>> = _searchResults.asStateFlow()
@@ -77,7 +86,21 @@ class MainViewModel(
     fun setUsageRange(days: Int) {
         if (_usageRangeDays.value == days) return
         _usageRangeDays.value = days
-        loadUsage()
+        viewModelScope.launch {
+            if (UsagePermission.isGranted(appContext)) {
+                _usageReport.value = usageRepository.report(days)
+            }
+        }
+    }
+
+    fun setTopRange(days: Int) {
+        if (_topRangeDays.value == days) return
+        _topRangeDays.value = days
+        viewModelScope.launch {
+            if (UsagePermission.isGranted(appContext)) {
+                _topApps.value = usageRepository.appUsage(days)
+            }
+        }
     }
 
     fun loadUsage() {
@@ -87,8 +110,10 @@ class MainViewModel(
             if (granted) {
                 usageRepository.record()
                 _usageReport.value = usageRepository.report(_usageRangeDays.value)
+                _topApps.value = usageRepository.appUsage(_topRangeDays.value)
             } else {
                 _usageReport.value = null
+                _topApps.value = emptyList()
             }
         }
     }

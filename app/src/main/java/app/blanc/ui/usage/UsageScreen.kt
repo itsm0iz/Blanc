@@ -31,6 +31,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.blanc.usage.AppTotal
 import app.blanc.usage.CategorySlice
 import app.blanc.usage.UsageReport
 import app.blanc.util.formatDuration
@@ -39,15 +40,19 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 
 private val RANGES = listOf(7, 14, 30, 60, 90)
+private val TOP_RANGES = listOf(1, 7, 14, 30)
 
 @Composable
 fun UsageScreen(
     granted: Boolean,
     report: UsageReport?,
     rangeDays: Int,
+    topApps: List<AppTotal>,
+    topRangeDays: Int,
     labelFor: (String) -> String,
     onGrantAccess: () -> Unit,
     onRangeChange: (Int) -> Unit,
+    onTopRangeChange: (Int) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -63,7 +68,15 @@ fun UsageScreen(
                 modifier = Modifier.padding(vertical = 24.dp),
             )
 
-            else -> ReportContent(report, rangeDays, labelFor, onRangeChange)
+            else -> ReportContent(
+                report = report,
+                rangeDays = rangeDays,
+                topApps = topApps,
+                topRangeDays = topRangeDays,
+                labelFor = labelFor,
+                onRangeChange = onRangeChange,
+                onTopRangeChange = onTopRangeChange,
+            )
         }
     }
 }
@@ -85,8 +98,11 @@ private fun PermissionPrompt(onGrantAccess: () -> Unit) {
 private fun ReportContent(
     report: UsageReport,
     rangeDays: Int,
+    topApps: List<AppTotal>,
+    topRangeDays: Int,
     labelFor: (String) -> String,
     onRangeChange: (Int) -> Unit,
+    onTopRangeChange: (Int) -> Unit,
 ) {
     val onBg = MaterialTheme.colorScheme.onBackground
 
@@ -152,12 +168,32 @@ private fun ReportContent(
         }
     }
 
-    // Top apps
-    if (report.topApps.isNotEmpty()) {
-        Spacer(Modifier.height(28.dp))
-        Text("Most used", fontSize = 13.sp, color = onBg.copy(alpha = 0.5f))
-        Spacer(Modifier.height(8.dp))
-        report.topApps.forEach { app ->
+    // Most used — its own range (default today) for per-app inspection.
+    Spacer(Modifier.height(28.dp))
+    Text("Most used", fontSize = 13.sp, color = onBg.copy(alpha = 0.5f))
+    Spacer(Modifier.height(6.dp))
+    val topStartIndex = TOP_RANGES.indexOf(topRangeDays).let { if (it < 0) 0 else it }
+    var topSliderPos by remember(topRangeDays) { mutableFloatStateOf(topStartIndex.toFloat()) }
+    val shownTop = TOP_RANGES[topSliderPos.roundToInt().coerceIn(0, TOP_RANGES.lastIndex)]
+    Text(topRangeLabel(shownTop), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = onBg)
+    Slider(
+        value = topSliderPos,
+        onValueChange = { topSliderPos = it },
+        valueRange = 0f..TOP_RANGES.lastIndex.toFloat(),
+        steps = TOP_RANGES.size - 2,
+        onValueChangeFinished = {
+            onTopRangeChange(TOP_RANGES[topSliderPos.roundToInt().coerceIn(0, TOP_RANGES.lastIndex)])
+        },
+    )
+    Spacer(Modifier.height(4.dp))
+    if (topApps.isEmpty()) {
+        Text(
+            text = "No usage recorded for this range yet.",
+            fontSize = 14.sp,
+            color = onBg.copy(alpha = 0.5f),
+        )
+    } else {
+        topApps.take(25).forEach { app ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -172,6 +208,8 @@ private fun ReportContent(
 
     Spacer(Modifier.height(24.dp))
 }
+
+private fun topRangeLabel(days: Int): String = if (days == 1) "Today" else "Last $days days"
 
 @Composable
 private fun CompareCard(report: UsageReport) {
