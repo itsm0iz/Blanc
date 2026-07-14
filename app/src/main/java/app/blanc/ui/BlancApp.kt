@@ -28,6 +28,7 @@ import app.blanc.ui.motion.rememberMotionEnabled
 import app.blanc.ui.quicksettings.QuickSettingsScreen
 import app.blanc.ui.search.UniversalSearchScreen
 import app.blanc.ui.theme.BlancTheme
+import app.blanc.util.expandNotifications
 import app.blanc.util.openSettingsAction
 import app.blanc.util.webSearch
 
@@ -42,6 +43,12 @@ fun BlancApp(viewModel: MainViewModel) {
 
     val homeAppNames = remember(apps, settings.homeApps) {
         settings.homeApps.map { key -> apps.firstOrNull { it.key == key }?.label ?: key.packageName }
+    }
+    val swipeLeftApp = remember(apps, settings.swipeLeftApp) {
+        settings.swipeLeftApp?.let { key -> apps.firstOrNull { it.key == key } }
+    }
+    val swipeRightApp = remember(apps, settings.swipeRightApp) {
+        settings.swipeRightApp?.let { key -> apps.firstOrNull { it.key == key } }
     }
     val dimAlpha = when (settings.wallpaperDim) {
         1 -> 0.2f
@@ -89,9 +96,12 @@ fun BlancApp(viewModel: MainViewModel) {
                         settings = settings,
                         motionEnabled = motionEnabled,
                         hapticsEnabled = settings.haptics,
+                        swipeLeftApp = swipeLeftApp,
+                        swipeRightApp = swipeRightApp,
                         onLaunch = { viewModel.launchApp(it) },
                         onOpenDrawer = { viewModel.openDrawer() },
                         onOpenSettings = { viewModel.openQuickSettings() },
+                        onSwipeDown = { view.context.expandNotifications() },
                         onAssignSlot = { viewModel.openDrawer(DrawerMode.AssignHome(it)) },
                         onAddSlot = { viewModel.openDrawer(DrawerMode.AssignHome(settings.homeApps.size)) },
                     )

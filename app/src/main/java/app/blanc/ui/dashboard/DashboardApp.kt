@@ -30,10 +30,17 @@ import app.blanc.usage.UsagePermission
 import app.blanc.util.DefaultLauncher
 import app.blanc.util.openUrl
 
+/** What the in-app picker is currently choosing an app for. */
+private sealed interface PickTarget {
+    data class HomeSlot(val index: Int) : PickTarget
+    data object SwipeLeft : PickTarget
+    data object SwipeRight : PickTarget
+}
+
 /**
  * The Blanc app itself — a traditional, opaque app (its own launcher icon)
- * hosting the tabbed dashboard. Home-app slots are edited with an in-app
- * picker (reusing the app drawer) rather than the launcher's flow.
+ * hosting the tabbed dashboard, with an in-app picker for home slots and
+ * swipe-gesture apps.
  */
 @Composable
 fun DashboardApp(viewModel: MainViewModel, onClose: () -> Unit) {
@@ -43,34 +50,41 @@ fun DashboardApp(viewModel: MainViewModel, onClose: () -> Unit) {
     val usageState by viewModel.usageState.collectAsStateWithLifecycle()
     val motionEnabled = rememberMotionEnabled(settings.animations)
 
-    var pickingSlot by remember { mutableStateOf<Int?>(null) }
+    var pickTarget by remember { mutableStateOf<PickTarget?>(null) }
 
     LaunchedEffect(Unit) { viewModel.loadUsage() }
 
     val homeAppNames = remember(apps, settings.homeApps) {
         settings.homeApps.map { key -> apps.firstOrNull { it.key == key }?.label ?: key.packageName }
     }
+    fun nameOf(key: app.blanc.data.prefs.AppKey?): String =
+        key?.let { apps.firstOrNull { app -> app.key == it }?.label ?: it.packageName } ?: "None"
 
     BlancTheme(themeMode = settings.theme) {
         val view = LocalView.current
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             Box(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
-                val slot = pickingSlot
-                if (slot != null) {
-                    BackHandler { pickingSlot = null }
+                val target = pickTarget
+                if (target != null) {
+                    BackHandler { pickTarget = null }
+                    val slotIndex = (target as? PickTarget.HomeSlot)?.index ?: 0
                     AppDrawerScreen(
                         apps = apps,
-                        mode = DrawerMode.AssignHome(slot),
-                        homeAppsCount = settings.homeApps.size,
+                        mode = DrawerMode.AssignHome(slotIndex),
+                        homeAppsCount = if (target is PickTarget.HomeSlot) settings.homeApps.size else 0,
                         motionEnabled = motionEnabled,
                         onLaunch = {},
                         onAssign = { index, app ->
-                            viewModel.assignHomeApp(index, app)
-                            pickingSlot = null
+                            when (target) {
+                                is PickTarget.HomeSlot -> viewModel.assignHomeApp(index, app)
+                                PickTarget.SwipeLeft -> viewModel.setSwipeLeftApp(app)
+                                PickTarget.SwipeRight -> viewModel.setSwipeRightApp(app)
+                            }
+                            pickTarget = null
                         },
                         onRemove = { index ->
-                            viewModel.removeHomeApp(index)
-                            pickingSlot = null
+                            if (target is PickTarget.HomeSlot) viewModel.removeHomeApp(index)
+                            pickTarget = null
                         },
                         onAddHome = {},
                     )
@@ -91,10 +105,16 @@ fun DashboardApp(viewModel: MainViewModel, onClose: () -> Unit) {
                             usageState = usageState,
                             labelFor = { pkg -> apps.firstOrNull { it.packageName == pkg }?.label ?: pkg },
                             onGrantUsage = { UsagePermission.requestAccess(view.context) },
-                            onEditHomeApp = { pickingSlot = it },
-                            onAddHomeApp = { pickingSlot = settings.homeApps.size },
+                            swipeLeftName = nameOf(settings.swipeLeftApp),
+                            swipeRightName = nameOf(settings.swipeRightApp),
+                            onEditHomeApp = { pickTarget = PickTarget.HomeSlot(it) },
+                            onAddHomeApp = { pickTarget = PickTarget.HomeSlot(settings.homeApps.size) },
                             onCycleAlignment = { viewModel.cycleAlignment() },
                             onCycleDim = { viewModel.cycleWallpaperDim() },
+                            onEditSwipeLeft = { pickTarget = PickTarget.SwipeLeft },
+                            onEditSwipeRight = { pickTarget = PickTarget.SwipeRight },
+                            onClearSwipeLeft = { viewModel.setSwipeLeftApp(null) },
+                            onClearSwipeRight = { viewModel.setSwipeRightApp(null) },
                             onCycleTheme = { viewModel.cycleTheme() },
                             onToggleStatusBar = { viewModel.toggleStatusBar() },
                             onToggleAnimations = { viewModel.toggleAnimations() },

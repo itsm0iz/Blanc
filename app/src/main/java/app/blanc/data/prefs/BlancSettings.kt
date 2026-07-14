@@ -36,6 +36,8 @@ data class BlancSettings(
     val haptics: Boolean = true,
     /** 0 = off, 1 = low, 2 = medium, 3 = high. Dims the wallpaper behind content. */
     val wallpaperDim: Int = 0,
+    val swipeLeftApp: AppKey? = null,
+    val swipeRightApp: AppKey? = null,
 ) {
     companion object {
         const val MAX_HOME_APPS = 6

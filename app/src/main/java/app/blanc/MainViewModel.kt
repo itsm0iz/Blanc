@@ -153,6 +153,14 @@ class MainViewModel(
         viewModelScope.launch { settingsStore.setWallpaperDim(next) }
     }
 
+    fun setSwipeLeftApp(app: AppInfo?) {
+        viewModelScope.launch { settingsStore.setSwipeLeftApp(app?.key) }
+    }
+
+    fun setSwipeRightApp(app: AppInfo?) {
+        viewModelScope.launch { settingsStore.setSwipeRightApp(app?.key) }
+    }
+
     companion object {
         fun factory(context: Context): ViewModelProvider.Factory {
             val appContext = context.applicationContext

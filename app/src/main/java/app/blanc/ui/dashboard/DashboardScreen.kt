@@ -42,10 +42,16 @@ fun DashboardScreen(
     usageState: UsageState?,
     labelFor: (String) -> String,
     onGrantUsage: () -> Unit,
+    swipeLeftName: String,
+    swipeRightName: String,
     onEditHomeApp: (Int) -> Unit,
     onAddHomeApp: () -> Unit,
     onCycleAlignment: () -> Unit,
     onCycleDim: () -> Unit,
+    onEditSwipeLeft: () -> Unit,
+    onEditSwipeRight: () -> Unit,
+    onClearSwipeLeft: () -> Unit,
+    onClearSwipeRight: () -> Unit,
     onCycleTheme: () -> Unit,
     onToggleStatusBar: () -> Unit,
     onToggleAnimations: () -> Unit,
@@ -88,10 +94,16 @@ fun DashboardScreen(
                 1 -> HomeTab(
                     settings = settings,
                     homeAppNames = homeAppNames,
+                    swipeLeftName = swipeLeftName,
+                    swipeRightName = swipeRightName,
                     onEditHomeApp = onEditHomeApp,
                     onAddHomeApp = onAddHomeApp,
                     onCycleAlignment = onCycleAlignment,
                     onCycleDim = onCycleDim,
+                    onEditSwipeLeft = onEditSwipeLeft,
+                    onEditSwipeRight = onEditSwipeRight,
+                    onClearSwipeLeft = onClearSwipeLeft,
+                    onClearSwipeRight = onClearSwipeRight,
                 )
 
                 else -> AppTab(
@@ -112,10 +124,16 @@ fun DashboardScreen(
 private fun HomeTab(
     settings: BlancSettings,
     homeAppNames: List<String>,
+    swipeLeftName: String,
+    swipeRightName: String,
     onEditHomeApp: (Int) -> Unit,
     onAddHomeApp: () -> Unit,
     onCycleAlignment: () -> Unit,
     onCycleDim: () -> Unit,
+    onEditSwipeLeft: () -> Unit,
+    onEditSwipeRight: () -> Unit,
+    onClearSwipeLeft: () -> Unit,
+    onClearSwipeRight: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -129,6 +147,16 @@ private fun HomeTab(
         SectionHeader("Layout")
         SettingRow("Alignment", alignmentLabel(settings.alignment), onCycleAlignment)
         SettingRow("Dim wallpaper", dimLabel(settings.wallpaperDim), onCycleDim)
+
+        SectionHeader("Gestures")
+        SettingRow("Swipe left app", swipeLeftName, onClick = onEditSwipeLeft, onLongClick = onClearSwipeLeft)
+        SettingRow("Swipe right app", swipeRightName, onClick = onEditSwipeRight, onLongClick = onClearSwipeRight)
+        Text(
+            text = "Long-press a gesture to clear it. Swipe up opens search, down opens notifications.",
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+            modifier = Modifier.padding(top = 6.dp),
+        )
     }
 }
 

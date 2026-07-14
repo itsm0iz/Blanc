@@ -37,6 +37,8 @@ class SettingsStore(context: Context) {
             animations = this[KEY_ANIMATIONS] ?: true,
             haptics = this[KEY_HAPTICS] ?: true,
             wallpaperDim = this[KEY_WALLPAPER_DIM] ?: 0,
+            swipeLeftApp = this[KEY_SWIPE_LEFT]?.let { AppKey.decode(it) },
+            swipeRightApp = this[KEY_SWIPE_RIGHT]?.let { AppKey.decode(it) },
         )
     }
 
@@ -90,6 +92,14 @@ class SettingsStore(context: Context) {
         store.edit { it[KEY_WALLPAPER_DIM] = level }
     }
 
+    suspend fun setSwipeLeftApp(app: AppKey?) {
+        store.edit { if (app == null) it.remove(KEY_SWIPE_LEFT) else it[KEY_SWIPE_LEFT] = app.encode() }
+    }
+
+    suspend fun setSwipeRightApp(app: AppKey?) {
+        store.edit { if (app == null) it.remove(KEY_SWIPE_RIGHT) else it[KEY_SWIPE_RIGHT] = app.encode() }
+    }
+
     private companion object {
         val KEY_HOME_APPS = stringPreferencesKey("home_apps")
         val KEY_ALIGNMENT = intPreferencesKey("alignment")
@@ -98,5 +108,7 @@ class SettingsStore(context: Context) {
         val KEY_ANIMATIONS = booleanPreferencesKey("animations")
         val KEY_HAPTICS = booleanPreferencesKey("haptics")
         val KEY_WALLPAPER_DIM = intPreferencesKey("wallpaper_dim")
+        val KEY_SWIPE_LEFT = stringPreferencesKey("swipe_left_app")
+        val KEY_SWIPE_RIGHT = stringPreferencesKey("swipe_right_app")
     }
 }

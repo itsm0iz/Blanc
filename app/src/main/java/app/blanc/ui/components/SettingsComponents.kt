@@ -1,6 +1,7 @@
 package app.blanc.ui.components
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,12 +30,18 @@ fun SectionHeader(text: String) {
 }
 
 /** A tappable row: bold label on the left, optional grey value on the right. */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun SettingRow(label: String, value: String = "", onClick: () -> Unit = {}) {
+fun SettingRow(
+    label: String,
+    value: String = "",
+    onClick: () -> Unit = {},
+    onLongClick: (() -> Unit)? = null,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(vertical = 14.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,

@@ -6,7 +6,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -48,9 +48,12 @@ fun HomeScreen(
     settings: BlancSettings,
     motionEnabled: Boolean,
     hapticsEnabled: Boolean,
+    swipeLeftApp: AppInfo?,
+    swipeRightApp: AppInfo?,
     onLaunch: (AppInfo) -> Unit,
     onOpenDrawer: () -> Unit,
     onOpenSettings: () -> Unit,
+    onSwipeDown: () -> Unit,
     onAssignSlot: (Int) -> Unit,
     onAddSlot: () -> Unit,
 ) {
@@ -70,7 +73,8 @@ fun HomeScreen(
         settings.homeApps.map { key -> apps.firstOrNull { it.key == key } to key }
     }
 
-    var dragAccumulator by remember { mutableFloatStateOf(0f) }
+    var dragX by remember { mutableFloatStateOf(0f) }
+    var dragY by remember { mutableFloatStateOf(0f) }
 
     Column(
         modifier = Modifier
@@ -82,12 +86,27 @@ fun HomeScreen(
                 })
             }
             .pointerInput(Unit) {
-                detectVerticalDragGestures(
-                    onDragEnd = {
-                        if (dragAccumulator < -140f) onOpenDrawer()
-                        dragAccumulator = 0f
+                detectDragGestures(
+                    onDragStart = {
+                        dragX = 0f
+                        dragY = 0f
                     },
-                    onVerticalDrag = { _, dragAmount -> dragAccumulator += dragAmount },
+                    onDragEnd = {
+                        val threshold = 120f
+                        if (kotlin.math.abs(dragX) > kotlin.math.abs(dragY)) {
+                            if (dragX > threshold) swipeRightApp?.let(onLaunch)
+                            else if (dragX < -threshold) swipeLeftApp?.let(onLaunch)
+                        } else {
+                            if (dragY < -threshold) onOpenDrawer()
+                            else if (dragY > threshold) onSwipeDown()
+                        }
+                        dragX = 0f
+                        dragY = 0f
+                    },
+                    onDrag = { _, dragAmount ->
+                        dragX += dragAmount.x
+                        dragY += dragAmount.y
+                    },
                 )
             }
             .padding(horizontal = 24.dp, vertical = 32.dp),

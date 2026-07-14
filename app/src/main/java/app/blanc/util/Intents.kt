@@ -1,5 +1,6 @@
 package app.blanc.util
 
+import android.annotation.SuppressLint
 import android.app.SearchManager
 import android.content.Context
 import android.content.Intent
@@ -31,6 +32,18 @@ fun Context.webSearch(query: String) {
 fun Context.openSettingsAction(action: String) {
     try {
         startActivity(Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
+}
+
+/** Pulls down the notification shade (reflection; no public API exists). */
+@SuppressLint("WrongConstant")
+fun Context.expandNotifications() {
+    try {
+        val service = getSystemService("statusbar")
+        val manager = Class.forName("android.app.StatusBarManager")
+        manager.getMethod("expandNotificationsPanel").invoke(service)
     } catch (e: Exception) {
         e.printStackTrace()
     }
