@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "blanc_settings")
@@ -22,6 +23,9 @@ class SettingsStore(context: Context) {
     private val store = context.applicationContext.dataStore
 
     val settings: Flow<BlancSettings> = store.data.map { prefs -> prefs.toSettings() }
+
+    /** A one-shot read of the current settings, for non-UI callers like workers. */
+    suspend fun current(): BlancSettings = settings.first()
 
     private fun Preferences.toSettings(): BlancSettings {
         val homeApps = this[KEY_HOME_APPS]
@@ -39,6 +43,7 @@ class SettingsStore(context: Context) {
             wallpaperDim = this[KEY_WALLPAPER_DIM] ?: 0,
             swipeLeftApp = this[KEY_SWIPE_LEFT]?.let { AppKey.decode(it) },
             swipeRightApp = this[KEY_SWIPE_RIGHT]?.let { AppKey.decode(it) },
+            nudgesEnabled = this[KEY_NUDGES] ?: true,
         )
     }
 
@@ -100,6 +105,10 @@ class SettingsStore(context: Context) {
         store.edit { if (app == null) it.remove(KEY_SWIPE_RIGHT) else it[KEY_SWIPE_RIGHT] = app.encode() }
     }
 
+    suspend fun setNudgesEnabled(enabled: Boolean) {
+        store.edit { it[KEY_NUDGES] = enabled }
+    }
+
     private companion object {
         val KEY_HOME_APPS = stringPreferencesKey("home_apps")
         val KEY_ALIGNMENT = intPreferencesKey("alignment")
@@ -110,5 +119,6 @@ class SettingsStore(context: Context) {
         val KEY_WALLPAPER_DIM = intPreferencesKey("wallpaper_dim")
         val KEY_SWIPE_LEFT = stringPreferencesKey("swipe_left_app")
         val KEY_SWIPE_RIGHT = stringPreferencesKey("swipe_right_app")
+        val KEY_NUDGES = booleanPreferencesKey("nudges_enabled")
     }
 }

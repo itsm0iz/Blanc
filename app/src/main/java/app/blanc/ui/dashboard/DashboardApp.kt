@@ -1,6 +1,10 @@
 package app.blanc.ui.dashboard
 
+import android.Manifest
+import android.os.Build
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -63,6 +67,9 @@ fun DashboardApp(viewModel: MainViewModel, onClose: () -> Unit) {
 
     BlancTheme(themeMode = settings.theme) {
         val view = LocalView.current
+        val notificationPermission = rememberLauncherForActivityResult(
+            ActivityResultContracts.RequestPermission(),
+        ) { /* Either way nudges stay on; the worker checks permission before posting. */ }
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             Box(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
                 val target = pickTarget
@@ -122,6 +129,13 @@ fun DashboardApp(viewModel: MainViewModel, onClose: () -> Unit) {
                             onToggleStatusBar = { viewModel.toggleStatusBar() },
                             onToggleAnimations = { viewModel.toggleAnimations() },
                             onToggleHaptics = { viewModel.toggleHaptics() },
+                            onToggleNudges = {
+                                val enabling = !settings.nudgesEnabled
+                                viewModel.setNudges(enabling)
+                                if (enabling && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                }
+                            },
                             onSetDefaultLauncher = { DefaultLauncher.request(view.context) },
                             onOpenUrl = { view.context.openUrl(it) },
                         )

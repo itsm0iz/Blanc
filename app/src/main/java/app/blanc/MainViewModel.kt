@@ -170,6 +170,10 @@ class MainViewModel(
         viewModelScope.launch { settingsStore.setSwipeRightApp(app?.key) }
     }
 
+    fun setNudges(enabled: Boolean) {
+        viewModelScope.launch { settingsStore.setNudgesEnabled(enabled) }
+    }
+
     companion object {
         fun factory(context: Context): ViewModelProvider.Factory {
             val appContext = context.applicationContext

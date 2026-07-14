@@ -8,7 +8,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import app.blanc.ui.BlancApp
 import app.blanc.ui.CrashScreen
-import app.blanc.usage.UsageRecorderWorker
 import java.io.File
 
 class MainActivity : ComponentActivity() {
@@ -30,7 +29,6 @@ class MainActivity : ComponentActivity() {
         }
 
         enableEdgeToEdge()
-        runCatching { UsageRecorderWorker.schedule(applicationContext) }
         setContent {
             BlancApp(viewModel)
         }

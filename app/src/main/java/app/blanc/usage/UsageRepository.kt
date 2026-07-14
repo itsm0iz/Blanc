@@ -13,6 +13,14 @@ import kotlin.math.roundToInt
 /** One category's total time over the report range. */
 data class CategorySlice(val category: AppCategory, val totalMs: Long)
 
+/** Minimal usage signals the nudge engine reasons about. */
+data class NudgeContext(
+    val socialsTodayMs: Long,
+    val thisWeekMs: Long,
+    val lastWeekMs: Long,
+    val projectedYearMs: Long,
+)
+
 /** A full snapshot for the stats screen over a chosen range of days. */
 data class UsageReport(
     val rangeDays: Int,
@@ -115,6 +123,41 @@ class UsageRepository(context: Context) {
             thisWeekMs = thisWeek,
             lastWeekMs = lastWeek,
             weekChangePercent = weekChange,
+            projectedYearMs = avgPerDay * 365,
+        )
+    }
+
+    /**
+     * The minimal, self-contained signals the nudge engine reasons about. Kept
+     * independent of the currently-selected report range so a background worker
+     * can evaluate usage without touching the UI's state.
+     */
+    suspend fun nudgeContext(): NudgeContext = withContext(Dispatchers.IO) {
+        val todayEpoch = epochDayOf(startOfToday())
+
+        // Today's social-app foreground time.
+        var socialsToday = 0L
+        for (app in dao.appTotals(todayEpoch, todayEpoch)) {
+            if (categoryResolver.categoryOf(app.packageName) == AppCategory.SOCIAL) {
+                socialsToday += app.totalMs
+            }
+        }
+
+        // This week vs. last week, from the last 14 days.
+        val twoWeeks = dao.dailyTotals(todayEpoch - 13, todayEpoch).associateBy { it.epochDay }
+        val thisWeek = (todayEpoch - 6..todayEpoch).sumOf { twoWeeks[it]?.totalMs ?: 0L }
+        val lastWeek = (todayEpoch - 13..todayEpoch - 7).sumOf { twoWeeks[it]?.totalMs ?: 0L }
+
+        // Yearly projection from a 30-day average over days that have data.
+        val month = dao.dailyTotals(todayEpoch - 29, todayEpoch)
+        val monthTotal = month.sumOf { it.totalMs }
+        val daysWithData = month.count { it.totalMs > 0 }
+        val avgPerDay = monthTotal / max(1, daysWithData)
+
+        NudgeContext(
+            socialsTodayMs = socialsToday,
+            thisWeekMs = thisWeek,
+            lastWeekMs = lastWeek,
             projectedYearMs = avgPerDay * 365,
         )
     }

@@ -2,6 +2,8 @@ package app.blanc
 
 import android.app.Application
 import android.util.Log
+import app.blanc.usage.NudgeWorker
+import app.blanc.usage.UsageRecorderWorker
 import java.io.File
 
 /**
@@ -14,6 +16,16 @@ class BlancApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        installCrashHandler()
+
+        // Schedule background work once per process start (idempotent: KEEP).
+        runCatching {
+            UsageRecorderWorker.schedule(this)
+            NudgeWorker.schedule(this)
+        }
+    }
+
+    private fun installCrashHandler() {
         val previous = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             try {

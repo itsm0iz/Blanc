@@ -38,6 +38,8 @@ data class BlancSettings(
     val wallpaperDim: Int = 0,
     val swipeLeftApp: AppKey? = null,
     val swipeRightApp: AppKey? = null,
+    /** Occasional screen-time nudge notifications. */
+    val nudgesEnabled: Boolean = true,
 ) {
     companion object {
         const val MAX_HOME_APPS = 6

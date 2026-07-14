@@ -58,6 +58,7 @@ fun DashboardScreen(
     onToggleStatusBar: () -> Unit,
     onToggleAnimations: () -> Unit,
     onToggleHaptics: () -> Unit,
+    onToggleNudges: () -> Unit,
     onSetDefaultLauncher: () -> Unit,
     onOpenUrl: (String) -> Unit,
 ) {
@@ -116,6 +117,7 @@ fun DashboardScreen(
                     onToggleStatusBar = onToggleStatusBar,
                     onToggleAnimations = onToggleAnimations,
                     onToggleHaptics = onToggleHaptics,
+                    onToggleNudges = onToggleNudges,
                     onSetDefaultLauncher = onSetDefaultLauncher,
                     onOpenUrl = onOpenUrl,
                 )
@@ -171,6 +173,7 @@ private fun AppTab(
     onToggleStatusBar: () -> Unit,
     onToggleAnimations: () -> Unit,
     onToggleHaptics: () -> Unit,
+    onToggleNudges: () -> Unit,
     onSetDefaultLauncher: () -> Unit,
     onOpenUrl: (String) -> Unit,
 ) {
@@ -185,6 +188,15 @@ private fun AppTab(
         SettingRow("Status bar", if (settings.showStatusBar) "On" else "Off", onToggleStatusBar)
         SettingRow("Animations", if (settings.animations) "On" else "Off", onToggleAnimations)
         SettingRow("Haptics", if (settings.haptics) "On" else "Off", onToggleHaptics)
+
+        SectionHeader("Screen time")
+        SettingRow("Nudges", if (settings.nudgesEnabled) "On" else "Off", onToggleNudges)
+        Text(
+            text = "Occasional, gentle reminders about your usage — social warnings, weekly wins, and what all that time could become.",
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+            modifier = Modifier.padding(top = 6.dp),
+        )
 
         SectionHeader("Launcher")
         SettingRow("Set Blanc as default", onClick = onSetDefaultLauncher)
