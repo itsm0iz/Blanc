@@ -36,6 +36,7 @@ class SettingsStore(context: Context) {
             showStatusBar = this[KEY_STATUS_BAR] ?: false,
             animations = this[KEY_ANIMATIONS] ?: true,
             haptics = this[KEY_HAPTICS] ?: true,
+            wallpaperDim = this[KEY_WALLPAPER_DIM] ?: 0,
         )
     }
 
@@ -85,6 +86,10 @@ class SettingsStore(context: Context) {
         store.edit { it[KEY_HAPTICS] = enabled }
     }
 
+    suspend fun setWallpaperDim(level: Int) {
+        store.edit { it[KEY_WALLPAPER_DIM] = level }
+    }
+
     private companion object {
         val KEY_HOME_APPS = stringPreferencesKey("home_apps")
         val KEY_ALIGNMENT = intPreferencesKey("alignment")
@@ -92,5 +97,6 @@ class SettingsStore(context: Context) {
         val KEY_STATUS_BAR = booleanPreferencesKey("status_bar")
         val KEY_ANIMATIONS = booleanPreferencesKey("animations")
         val KEY_HAPTICS = booleanPreferencesKey("haptics")
+        val KEY_WALLPAPER_DIM = intPreferencesKey("wallpaper_dim")
     }
 }

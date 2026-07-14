@@ -35,3 +35,16 @@ fun Context.openSettingsAction(action: String) {
         e.printStackTrace()
     }
 }
+
+/** Opens a web URL in the browser. */
+fun Context.openUrl(url: String) {
+    if (url.isBlank()) return
+    try {
+        startActivity(
+            Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        )
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
+}

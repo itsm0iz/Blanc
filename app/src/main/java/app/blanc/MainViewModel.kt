@@ -63,12 +63,12 @@ class MainViewModel(
         _screen.value = Screen.Drawer(mode)
     }
 
-    fun openSettings() {
-        _screen.value = Screen.Settings
+    fun openQuickSettings() {
+        _screen.value = Screen.QuickSettings
     }
 
-    fun openUsage() {
-        _screen.value = Screen.Usage
+    fun openDashboard() {
+        _screen.value = Screen.Dashboard
         loadUsage()
     }
 
@@ -151,6 +151,11 @@ class MainViewModel(
 
     fun toggleHaptics() {
         viewModelScope.launch { settingsStore.setHaptics(!settings.value.haptics) }
+    }
+
+    fun cycleWallpaperDim() {
+        val next = (settings.value.wallpaperDim + 1) % (BlancSettings.MAX_WALLPAPER_DIM + 1)
+        viewModelScope.launch { settingsStore.setWallpaperDim(next) }
     }
 
     companion object {

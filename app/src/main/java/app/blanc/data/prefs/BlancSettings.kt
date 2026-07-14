@@ -34,9 +34,12 @@ data class BlancSettings(
     val showStatusBar: Boolean = false,
     val animations: Boolean = true,
     val haptics: Boolean = true,
+    /** 0 = off, 1 = low, 2 = medium, 3 = high. Dims the wallpaper behind content. */
+    val wallpaperDim: Int = 0,
 ) {
     companion object {
         const val MAX_HOME_APPS = 6
+        const val MAX_WALLPAPER_DIM = 3
         val DEFAULT = BlancSettings()
     }
 }
