@@ -25,8 +25,19 @@ data class BlancSpace(
         return copy(slots = slots.toMutableList().also { it[index] = slot })
     }
 
+    /**
+     * Rows needed at runtime while preserving the slot's spatial position.
+     * A gap before a later app stays visible; only entirely unused trailing
+     * rows disappear.
+     */
+    fun visibleRowCount(): Int {
+        val lastOccupied = slots.indexOfLast { it != null }
+        return if (lastOccupied < 0) 0 else lastOccupied / COLUMNS + 1
+    }
+
     companion object {
         const val SLOT_COUNT = 16
+        const val COLUMNS = 4
         const val MAX_NAME_LENGTH = 24
 
         fun empty(id: String, name: String): BlancSpace = BlancSpace(

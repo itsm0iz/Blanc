@@ -27,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
@@ -86,8 +87,6 @@ fun HomeScreen(
     }
 
     var dragX by remember { mutableFloatStateOf(0f) }
-    var dragY by remember { mutableFloatStateOf(0f) }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -108,6 +107,7 @@ fun HomeScreen(
                 })
             }
             .pointerInput(swipeThreshold, swipeRightApp) {
+                var dragY = 0f
                 detectDragGestures(
                     onDragStart = {
                         dragX = 0f
@@ -129,6 +129,15 @@ fun HomeScreen(
                         dragY += dragAmount.y
                     },
                 )
+            }
+            // Immediate finger feedback with no layout/recomposition: only the
+            // existing Home layer shifts a few pixels while dragging.
+            .graphicsLayer {
+                translationX = if (motionEnabled) {
+                    dragX.coerceIn(-swipeThreshold, swipeThreshold) * 0.12f
+                } else {
+                    0f
+                }
             }
             .padding(horizontal = 24.dp, vertical = 32.dp),
         verticalArrangement = Arrangement.Center,

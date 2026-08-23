@@ -1,8 +1,7 @@
 package app.blanc.ui.spaces
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -15,6 +14,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -28,16 +28,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -53,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.blanc.data.AppInfo
 import app.blanc.spaces.BlancSpace
+import app.blanc.spaces.SpaceSlot
 import app.blanc.spaces.SpacesConfig
 
 @Composable
@@ -69,14 +67,25 @@ fun SpacesScreen(
         config.spaces.filter { space -> space.slots.any { it != null } }
     }
     val closeThreshold = with(LocalDensity.current) { 64.dp.toPx() }
-    var closeDrag by remember { mutableFloatStateOf(0f) }
-    var appeared by remember { mutableStateOf(!motionEnabled) }
-    LaunchedEffect(motionEnabled) { appeared = true }
+    val entranceDistance = with(LocalDensity.current) { 18.dp.toPx() }
+    val entrance = remember(motionEnabled) { Animatable(if (motionEnabled) 0f else 1f) }
+    LaunchedEffect(motionEnabled) {
+        if (motionEnabled) {
+            entrance.snapTo(0f)
+            entrance.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(durationMillis = 155, easing = LinearOutSlowInEasing),
+            )
+        } else {
+            entrance.snapTo(1f)
+        }
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .pointerInput(onClose, closeThreshold) {
+                var closeDrag = 0f
                 detectHorizontalDragGestures(
                     onDragStart = { closeDrag = 0f },
                     onHorizontalDrag = { change, amount ->
@@ -91,47 +100,45 @@ fun SpacesScreen(
                 )
             },
     ) {
-        AnimatedVisibility(
-            visible = appeared,
-            enter = if (motionEnabled) {
-                fadeIn(tween(180)) + slideInHorizontally(tween(210)) { it / 7 }
-            } else {
-                fadeIn(tween(0))
-            },
+        LazyColumn(
+            // The list is measured once. Animation touches only this hardware
+            // layer, avoiding AnimatedVisibility's extra layout work.
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    val progress = entrance.value
+                    translationX = (1f - progress) * entranceDistance
+                },
+            contentPadding = PaddingValues(start = 20.dp, top = 24.dp, end = 20.dp, bottom = 40.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = 20.dp, top = 24.dp, end = 20.dp, bottom = 40.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                item(key = "title") {
-                    Column(modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)) {
-                        Text(
-                            text = "Spaces",
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onBackground,
-                        )
-                        Text(
-                            text = "Swipe right to return home",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.48f),
-                        )
-                    }
+            item(key = "title") {
+                Column(modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)) {
+                    Text(
+                        text = "Spaces",
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                    )
+                    Text(
+                        text = "Swipe right to return home",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.48f),
+                    )
                 }
+            }
 
-                if (visibleSpaces.isEmpty()) {
-                    item(key = "empty") {
-                        EmptySpaces(onOpenSetup)
-                    }
-                } else {
-                    items(visibleSpaces, key = { it.id }) { space ->
-                        GlassSpace(
-                            space = space,
-                            appsByKey = appsByKey,
-                            onLaunch = onLaunch,
-                        )
-                    }
+            if (visibleSpaces.isEmpty()) {
+                item(key = "empty") {
+                    EmptySpaces(onOpenSetup)
+                }
+            } else {
+                items(visibleSpaces, key = { it.id }) { space ->
+                    GlassSpace(
+                        space = space,
+                        appsByKey = appsByKey,
+                        onLaunch = onLaunch,
+                    )
                 }
             }
         }
@@ -176,12 +183,13 @@ private fun GlassSpace(
     val fill = if (dark) Color.Black.copy(alpha = 0.50f) else Color.White.copy(alpha = 0.76f)
     val topFill = if (dark) Color.Black.copy(alpha = 0.42f) else Color.White.copy(alpha = 0.84f)
     val border = if (dark) Color.White.copy(alpha = 0.13f) else Color.Black.copy(alpha = 0.09f)
+    val panelBrush = remember(dark) { Brush.verticalGradient(listOf(topFill, fill)) }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(Brush.verticalGradient(listOf(topFill, fill)), shape)
+            .background(panelBrush, shape)
             .border(1.dp, border, shape)
             .padding(horizontal = 12.dp, vertical = 14.dp),
     ) {
@@ -196,56 +204,69 @@ private fun GlassSpace(
                 .semantics { heading() },
         )
 
-        repeat(4) { row ->
+        repeat(space.visibleRowCount()) { row ->
             Row(modifier = Modifier.fillMaxWidth()) {
-                repeat(4) { column ->
-                    val slot = space.slots[row * 4 + column]
+                repeat(BlancSpace.COLUMNS) { column ->
+                    val slot = space.slots[row * BlancSpace.COLUMNS + column]
                     val app = slot?.let { appsByKey[it.appKey] }
-                    val interaction = remember(space.id, row, column) { MutableInteractionSource() }
-                    val pressed by interaction.collectIsPressedAsState()
-                    val baseModifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = 52.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                    val actionModifier = when {
-                        app != null -> baseModifier.clickable(
-                            interactionSource = interaction,
-                            indication = null,
-                            role = Role.Button,
-                            onClick = { onLaunch(app) },
-                        )
-                        slot != null -> baseModifier.semantics {
-                            contentDescription = "${slot.savedLabel}, unavailable"
-                            disabled()
-                        }
-                        else -> baseModifier
-                    }
-                    Box(
-                        modifier = actionModifier
-                            .padding(horizontal = 4.dp, vertical = 6.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        if (slot != null) {
-                            Text(
-                                text = app?.label ?: slot.savedLabel,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                                textAlign = TextAlign.Center,
-                                fontSize = 15.sp,
-                                lineHeight = 17.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onBackground.copy(
-                                    alpha = when {
-                                        app == null -> 0.30f
-                                        pressed -> 0.58f
-                                        else -> 0.92f
-                                    },
-                                ),
-                            )
-                        }
-                    }
+                    SpaceAppCell(slot = slot, app = app, onLaunch = onLaunch)
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun RowScope.SpaceAppCell(
+    slot: SpaceSlot?,
+    app: AppInfo?,
+    onLaunch: (AppInfo) -> Unit,
+) {
+    val interaction = if (app != null) remember { MutableInteractionSource() } else null
+    val pressed = if (interaction != null) {
+        interaction.collectIsPressedAsState().value
+    } else {
+        false
+    }
+    val baseModifier = Modifier
+        .weight(1f)
+        .heightIn(min = 52.dp)
+        .clip(RoundedCornerShape(14.dp))
+    val actionModifier = when {
+        app != null -> baseModifier.clickable(
+            interactionSource = requireNotNull(interaction),
+            indication = null,
+            role = Role.Button,
+            onClick = { onLaunch(app) },
+        )
+        slot != null -> baseModifier.semantics {
+            contentDescription = "${slot.savedLabel}, unavailable"
+            disabled()
+        }
+        else -> baseModifier
+    }
+
+    Box(
+        modifier = actionModifier.padding(horizontal = 4.dp, vertical = 6.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (slot != null) {
+            Text(
+                text = app?.label ?: slot.savedLabel,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+                fontSize = 15.sp,
+                lineHeight = 17.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground.copy(
+                    alpha = when {
+                        app == null -> 0.30f
+                        pressed -> 0.58f
+                        else -> 0.92f
+                    },
+                ),
+            )
         }
     }
 }

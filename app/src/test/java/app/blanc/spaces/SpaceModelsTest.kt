@@ -47,4 +47,21 @@ class SpaceModelsTest {
 
         assertEquals(BlancSpace.MAX_NAME_LENGTH, space.name.length)
     }
+
+    @Test
+    fun runtimeRowsExpandOnlyThroughLastOccupiedPosition() {
+        val empty = BlancSpace.empty("id", "Tools")
+
+        assertEquals(0, empty.visibleRowCount())
+        assertEquals(1, empty.withSlot(3, slot).visibleRowCount())
+        assertEquals(2, empty.withSlot(4, slot).visibleRowCount())
+        assertEquals(4, empty.withSlot(15, slot).visibleRowCount())
+    }
+
+    @Test
+    fun interiorEmptyRowIsPreservedForSpatialMemory() {
+        val space = BlancSpace.empty("id", "Tools").withSlot(8, slot)
+
+        assertEquals(3, space.visibleRowCount())
+    }
 }

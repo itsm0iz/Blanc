@@ -231,7 +231,7 @@ private fun AppTab(
         SettingRow("Set Blanc as default", onClick = onSetDefaultLauncher)
 
         SectionHeader("About")
-        SettingRow("Version", "0.2.0-spaces")
+        SettingRow("Version", "0.2.1-spaces")
         SettingRow("Source code", "GitHub", onClick = { onOpenUrl(GITHUB_URL) })
         Spacer(Modifier.height(8.dp))
         Text(

@@ -51,8 +51,8 @@ jobs:
           BADGING="$("$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -n 1)"
           echo "$BADGING"
           echo "$BADGING" | grep -F "package: name='app.blanc.debug'"
-          echo "$BADGING" | grep -F "versionCode='2'"
-          echo "$BADGING" | grep -F "versionName='0.2.0-spaces'"
+          echo "$BADGING" | grep -F "versionCode='3'"
+          echo "$BADGING" | grep -F "versionName='0.2.1-spaces'"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK" | tee /tmp/blanc-signature.txt
           grep -qi "fd07387cffd3208c80f108558f34d35107283b54f5b2d1af2c22253fb408c295" /tmp/blanc-signature.txt
 
