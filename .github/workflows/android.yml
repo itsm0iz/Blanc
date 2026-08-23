@@ -45,6 +45,17 @@ jobs:
             cp app/build/outputs/apk/debug/*.apk dist/blanc-debug.apk
           fi
 
+      - name: Verify update identity and signature
+        run: |
+          APK="$(find dist -maxdepth 1 -name '*.apk' -print -quit)"
+          BADGING="$(aapt dump badging "$APK" | head -n 1)"
+          echo "$BADGING"
+          echo "$BADGING" | grep -F "package: name='app.blanc.debug'"
+          echo "$BADGING" | grep -F "versionCode='2'"
+          echo "$BADGING" | grep -F "versionName='0.2.0-spaces'"
+          apksigner verify --verbose --print-certs "$APK" | tee /tmp/blanc-signature.txt
+          grep -qi "fd07387cffd3208c80f108558f34d35107283b54f5b2d1af2c22253fb408c295" /tmp/blanc-signature.txt
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
