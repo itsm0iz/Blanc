@@ -12,6 +12,9 @@ sealed interface DrawerMode {
 sealed interface Screen {
     data object Home : Screen
 
+    /** The swipe-left collection of fixed, glassy 4x4 app Spaces. */
+    data object Spaces : Screen
+
     data class Drawer(val mode: DrawerMode) : Screen
 
     /** The compact quick panel shown on home long-press. */

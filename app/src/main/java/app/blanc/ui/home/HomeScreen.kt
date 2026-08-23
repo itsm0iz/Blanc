@@ -22,10 +22,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -48,16 +53,23 @@ fun HomeScreen(
     settings: BlancSettings,
     motionEnabled: Boolean,
     hapticsEnabled: Boolean,
-    swipeLeftApp: AppInfo?,
     swipeRightApp: AppInfo?,
     onLaunch: (AppInfo) -> Unit,
+    onSwipeLeft: () -> Unit,
+    swipeLeftActionLabel: String?,
     onOpenDrawer: () -> Unit,
     onOpenSettings: () -> Unit,
     onSwipeDown: () -> Unit,
     onAssignSlot: (Int) -> Unit,
-    onAddSlot: () -> Unit,
 ) {
     val tick = rememberHapticTick(hapticsEnabled)
+    // Preserve the original gesture's ~40–48dp travel on modern phones.
+    val swipeThreshold = with(LocalDensity.current) { 48.dp.toPx() }
+    val latestOnLaunch by rememberUpdatedState(onLaunch)
+    val latestOnSwipeLeft by rememberUpdatedState(onSwipeLeft)
+    val latestOpenDrawer by rememberUpdatedState(onOpenDrawer)
+    val latestOpenSettings by rememberUpdatedState(onOpenSettings)
+    val latestSwipeDown by rememberUpdatedState(onSwipeDown)
     val horizontalAlignment = when (settings.alignment) {
         HomeAlignment.START -> Alignment.Start
         HomeAlignment.CENTER -> Alignment.CenterHorizontally
@@ -79,26 +91,35 @@ fun HomeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .pointerInput(Unit) {
+            .semantics {
+                customActions = swipeLeftActionLabel?.let { label ->
+                    listOf(
+                        CustomAccessibilityAction(label) {
+                            latestOnSwipeLeft()
+                            true
+                        },
+                    )
+                } ?: emptyList()
+            }
+            .pointerInput(tick) {
                 detectTapGestures(onLongPress = {
                     tick()
-                    onOpenSettings()
+                    latestOpenSettings()
                 })
             }
-            .pointerInput(Unit) {
+            .pointerInput(swipeThreshold, swipeRightApp) {
                 detectDragGestures(
                     onDragStart = {
                         dragX = 0f
                         dragY = 0f
                     },
                     onDragEnd = {
-                        val threshold = 120f
                         if (kotlin.math.abs(dragX) > kotlin.math.abs(dragY)) {
-                            if (dragX > threshold) swipeRightApp?.let(onLaunch)
-                            else if (dragX < -threshold) swipeLeftApp?.let(onLaunch)
+                            if (dragX > swipeThreshold) swipeRightApp?.let(latestOnLaunch)
+                            else if (dragX < -swipeThreshold) latestOnSwipeLeft()
                         } else {
-                            if (dragY < -threshold) onOpenDrawer()
-                            else if (dragY > threshold) onSwipeDown()
+                            if (dragY < -swipeThreshold) latestOpenDrawer()
+                            else if (dragY > swipeThreshold) latestSwipeDown()
                         }
                         dragX = 0f
                         dragY = 0f

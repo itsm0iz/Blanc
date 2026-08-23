@@ -1,5 +1,7 @@
 package app.blanc.data.prefs
 
+import app.blanc.spaces.SpacesConfig
+
 /**
  * A durable reference to a launchable app: package + activity class + the user
  * profile serial it belongs to. Package and class names never contain the
@@ -40,6 +42,8 @@ data class BlancSettings(
     val swipeRightApp: AppKey? = null,
     /** Occasional screen-time nudge notifications. */
     val nudgesEnabled: Boolean = true,
+    /** The fixed 4x4 catalogues shown by swiping left from Home. */
+    val spaces: SpacesConfig = SpacesConfig.DEFAULT,
 ) {
     companion object {
         const val MAX_HOME_APPS = 6

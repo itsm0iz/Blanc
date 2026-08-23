@@ -16,7 +16,15 @@ class DashboardActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            DashboardApp(viewModel, onClose = { finish() })
+            DashboardApp(
+                viewModel = viewModel,
+                onClose = { finish() },
+                initialTab = if (intent.getBooleanExtra(EXTRA_OPEN_SPACES, false)) 2 else 0,
+            )
         }
+    }
+
+    companion object {
+        const val EXTRA_OPEN_SPACES = "app.blanc.extra.OPEN_SPACES"
     }
 }

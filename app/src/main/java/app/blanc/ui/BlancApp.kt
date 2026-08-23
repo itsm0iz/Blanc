@@ -7,12 +7,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.AnnotatedString
@@ -27,6 +29,8 @@ import app.blanc.ui.home.HomeScreen
 import app.blanc.ui.motion.rememberMotionEnabled
 import app.blanc.ui.quicksettings.QuickSettingsScreen
 import app.blanc.ui.search.UniversalSearchScreen
+import app.blanc.ui.spaces.SpacesScreen
+import app.blanc.ui.spaces.rememberSpacesWindowBlur
 import app.blanc.ui.theme.BlancTheme
 import app.blanc.util.expandNotifications
 import app.blanc.util.openSettingsAction
@@ -59,6 +63,11 @@ fun BlancApp(viewModel: MainViewModel) {
 
     BlancTheme(themeMode = settings.theme) {
         val view = LocalView.current
+        val spacesVisible = screen is Screen.Spaces
+        val blurActive = rememberSpacesWindowBlur(
+            active = spacesVisible,
+            requested = settings.spaces.wallpaperBlur,
+        )
         LaunchedEffect(settings.showStatusBar) {
             val window = (view.context as? Activity)?.window ?: return@LaunchedEffect
             val controller = WindowCompat.getInsetsController(window, view)
@@ -75,7 +84,21 @@ fun BlancApp(viewModel: MainViewModel) {
         // scrim dims it for readability; content sits above the scrim and clears
         // the system bars.
         Box(modifier = Modifier.fillMaxSize()) {
-            if (dimAlpha > 0f) {
+            if (spacesVisible) {
+                val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+                val veil = if (dark) Color.Black else Color.White
+                val veilAlpha = when {
+                    dark && blurActive -> 0.26f
+                    dark -> 0.36f
+                    blurActive -> 0.18f
+                    else -> 0.28f
+                }
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(veil.copy(alpha = veilAlpha)),
+                )
+            } else if (dimAlpha > 0f) {
                 Box(
                     modifier = Modifier
                         .matchParentSize()
@@ -96,14 +119,41 @@ fun BlancApp(viewModel: MainViewModel) {
                         settings = settings,
                         motionEnabled = motionEnabled,
                         hapticsEnabled = settings.haptics,
-                        swipeLeftApp = swipeLeftApp,
                         swipeRightApp = swipeRightApp,
                         onLaunch = { viewModel.launchApp(it) },
+                        onSwipeLeft = {
+                            if (settings.spaces.enabled) {
+                                viewModel.openSpaces()
+                            } else {
+                                swipeLeftApp?.let(viewModel::launchApp)
+                            }
+                        },
+                        swipeLeftActionLabel = if (settings.spaces.enabled) {
+                            "Open Spaces"
+                        } else {
+                            swipeLeftApp?.let { "Open ${it.label}" }
+                        },
                         onOpenDrawer = { viewModel.openDrawer() },
                         onOpenSettings = { viewModel.openQuickSettings() },
                         onSwipeDown = { view.context.expandNotifications() },
                         onAssignSlot = { viewModel.openDrawer(DrawerMode.AssignHome(it)) },
-                        onAddSlot = { viewModel.openDrawer(DrawerMode.AssignHome(settings.homeApps.size)) },
+                    )
+
+                    is Screen.Spaces -> SpacesScreen(
+                        config = settings.spaces,
+                        apps = apps,
+                        motionEnabled = motionEnabled,
+                        onLaunch = {
+                            viewModel.launchApp(it)
+                            viewModel.goHome()
+                        },
+                        onClose = { viewModel.goHome() },
+                        onOpenSetup = {
+                            view.context.startActivity(
+                                Intent(view.context, DashboardActivity::class.java)
+                                    .putExtra(DashboardActivity.EXTRA_OPEN_SPACES, true),
+                            )
+                        },
                     )
 
                     is Screen.Drawer -> when (current.mode) {

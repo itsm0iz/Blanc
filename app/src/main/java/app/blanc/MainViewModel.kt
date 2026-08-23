@@ -16,6 +16,7 @@ import app.blanc.data.prefs.ThemeMode
 import app.blanc.search.Dictionary
 import app.blanc.search.SearchEngine
 import app.blanc.search.SearchResult
+import app.blanc.spaces.SpaceSlot
 import app.blanc.ui.DrawerMode
 import app.blanc.ui.Screen
 import app.blanc.usage.AppTotal
@@ -30,6 +31,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 class MainViewModel(
     private val appContext: Context,
@@ -77,6 +79,10 @@ class MainViewModel(
 
     fun openQuickSettings() {
         _screen.value = Screen.QuickSettings
+    }
+
+    fun openSpaces() {
+        _screen.value = Screen.Spaces
     }
 
     fun goHome() {
@@ -197,6 +203,39 @@ class MainViewModel(
 
     fun setNudges(enabled: Boolean) {
         viewModelScope.launch { settingsStore.setNudgesEnabled(enabled) }
+    }
+
+    // --- Spaces ----------------------------------------------------------
+
+    fun setSpacesEnabled(enabled: Boolean) {
+        viewModelScope.launch { settingsStore.setSpacesEnabled(enabled) }
+    }
+
+    fun setSpacesWallpaperBlur(enabled: Boolean) {
+        viewModelScope.launch { settingsStore.setSpacesWallpaperBlur(enabled) }
+    }
+
+    fun createSpace(name: String): String {
+        val id = UUID.randomUUID().toString()
+        viewModelScope.launch { settingsStore.createSpace(id, name) }
+        return id
+    }
+
+    fun renameSpace(spaceId: String, name: String) {
+        viewModelScope.launch { settingsStore.renameSpace(spaceId, name) }
+    }
+
+    fun deleteSpace(spaceId: String) {
+        viewModelScope.launch { settingsStore.deleteSpace(spaceId) }
+    }
+
+    fun moveSpace(spaceId: String, offset: Int) {
+        viewModelScope.launch { settingsStore.moveSpace(spaceId, offset) }
+    }
+
+    fun setSpaceSlot(spaceId: String, index: Int, app: AppInfo?) {
+        val slot = app?.let { SpaceSlot(appKey = it.key, savedLabel = it.label) }
+        viewModelScope.launch { settingsStore.setSpaceSlot(spaceId, index, slot) }
     }
 
     companion object {

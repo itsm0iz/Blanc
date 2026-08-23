@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.blanc.data.prefs.BlancSettings
 import app.blanc.data.prefs.ThemeMode
+import app.blanc.data.AppInfo
 import app.blanc.ui.components.HomeAppsSection
 import app.blanc.ui.components.SectionHeader
 import app.blanc.ui.components.SettingRow
@@ -37,7 +38,9 @@ private const val GITHUB_URL = "https://github.com/itsm0iz/Blanc"
 
 @Composable
 fun DashboardScreen(
+    initialTab: Int,
     settings: BlancSettings,
+    apps: List<AppInfo>,
     homeAppNames: List<String>,
     usageGranted: Boolean,
     usageReport: UsageReport?,
@@ -54,10 +57,15 @@ fun DashboardScreen(
     onAddHomeApp: () -> Unit,
     onCycleAlignment: () -> Unit,
     onCycleDim: () -> Unit,
-    onEditSwipeLeft: () -> Unit,
     onEditSwipeRight: () -> Unit,
-    onClearSwipeLeft: () -> Unit,
     onClearSwipeRight: () -> Unit,
+    onToggleSpacesEnabled: () -> Unit,
+    onToggleSpacesBlur: () -> Unit,
+    onCreateSpace: (String) -> String,
+    onRenameSpace: (String, String) -> Unit,
+    onDeleteSpace: (String) -> Unit,
+    onMoveSpace: (String, Int) -> Unit,
+    onSetSpaceSlot: (String, Int, AppInfo?) -> Unit,
     onCycleTheme: () -> Unit,
     onToggleStatusBar: () -> Unit,
     onToggleAnimations: () -> Unit,
@@ -66,8 +74,8 @@ fun DashboardScreen(
     onSetDefaultLauncher: () -> Unit,
     onOpenUrl: (String) -> Unit,
 ) {
-    var tab by remember { mutableIntStateOf(0) }
-    val tabs = listOf("Stats", "Home", "App")
+    var tab by remember(initialTab) { mutableIntStateOf(initialTab.coerceIn(0, 3)) }
+    val tabs = listOf("Stats", "Home", "Spaces", "App")
 
     Column(modifier = Modifier.fillMaxSize()) {
         TabRow(
@@ -112,10 +120,21 @@ fun DashboardScreen(
                     onAddHomeApp = onAddHomeApp,
                     onCycleAlignment = onCycleAlignment,
                     onCycleDim = onCycleDim,
-                    onEditSwipeLeft = onEditSwipeLeft,
                     onEditSwipeRight = onEditSwipeRight,
-                    onClearSwipeLeft = onClearSwipeLeft,
                     onClearSwipeRight = onClearSwipeRight,
+                    onOpenSpacesTab = { tab = 2 },
+                )
+
+                2 -> SpacesTab(
+                    config = settings.spaces,
+                    apps = apps,
+                    onToggleEnabled = onToggleSpacesEnabled,
+                    onToggleBlur = onToggleSpacesBlur,
+                    onCreate = onCreateSpace,
+                    onRename = onRenameSpace,
+                    onDelete = onDeleteSpace,
+                    onMove = onMoveSpace,
+                    onSetSlot = onSetSpaceSlot,
                 )
 
                 else -> AppTab(
@@ -143,10 +162,9 @@ private fun HomeTab(
     onAddHomeApp: () -> Unit,
     onCycleAlignment: () -> Unit,
     onCycleDim: () -> Unit,
-    onEditSwipeLeft: () -> Unit,
     onEditSwipeRight: () -> Unit,
-    onClearSwipeLeft: () -> Unit,
     onClearSwipeRight: () -> Unit,
+    onOpenSpacesTab: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -162,10 +180,14 @@ private fun HomeTab(
         SettingRow("Dim wallpaper", dimLabel(settings.wallpaperDim), onCycleDim)
 
         SectionHeader("Gestures")
-        SettingRow("Swipe left app", swipeLeftName, onClick = onEditSwipeLeft, onLongClick = onClearSwipeLeft)
+        SettingRow(
+            "Swipe left",
+            if (settings.spaces.enabled) "Spaces" else swipeLeftName,
+            onClick = onOpenSpacesTab,
+        )
         SettingRow("Swipe right app", swipeRightName, onClick = onEditSwipeRight, onLongClick = onClearSwipeRight)
         Text(
-            text = "Long-press a gesture to clear it. Swipe up opens search, down opens notifications.",
+            text = "Manage Spaces in its tab. Long-press the right gesture to clear it. Swipe up opens search, down opens notifications.",
             fontSize = 12.sp,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
             modifier = Modifier.padding(top = 6.dp),
@@ -209,7 +231,7 @@ private fun AppTab(
         SettingRow("Set Blanc as default", onClick = onSetDefaultLauncher)
 
         SectionHeader("About")
-        SettingRow("Version", "0.1.0")
+        SettingRow("Version", "0.2.0-spaces")
         SettingRow("Source code", "GitHub", onClick = { onOpenUrl(GITHUB_URL) })
         Spacer(Modifier.height(8.dp))
         Text(

@@ -37,7 +37,6 @@ import app.blanc.util.openUrl
 /** What the in-app picker is currently choosing an app for. */
 private sealed interface PickTarget {
     data class HomeSlot(val index: Int) : PickTarget
-    data object SwipeLeft : PickTarget
     data object SwipeRight : PickTarget
 }
 
@@ -47,7 +46,7 @@ private sealed interface PickTarget {
  * swipe-gesture apps.
  */
 @Composable
-fun DashboardApp(viewModel: MainViewModel, onClose: () -> Unit) {
+fun DashboardApp(viewModel: MainViewModel, onClose: () -> Unit, initialTab: Int = 0) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val apps by viewModel.apps.collectAsStateWithLifecycle()
     val usageGranted by viewModel.usageGranted.collectAsStateWithLifecycle()
@@ -87,7 +86,6 @@ fun DashboardApp(viewModel: MainViewModel, onClose: () -> Unit) {
                         onAssign = { index, app ->
                             when (target) {
                                 is PickTarget.HomeSlot -> viewModel.assignHomeApp(index, app)
-                                PickTarget.SwipeLeft -> viewModel.setSwipeLeftApp(app)
                                 PickTarget.SwipeRight -> viewModel.setSwipeRightApp(app)
                             }
                             pickTarget = null
@@ -109,7 +107,9 @@ fun DashboardApp(viewModel: MainViewModel, onClose: () -> Unit) {
                             modifier = Modifier.padding(start = 24.dp, top = 12.dp, bottom = 8.dp),
                         )
                         DashboardScreen(
+                            initialTab = initialTab,
                             settings = settings,
+                            apps = apps,
                             homeAppNames = homeAppNames,
                             usageGranted = usageGranted,
                             usageReport = usageReport,
@@ -126,10 +126,19 @@ fun DashboardApp(viewModel: MainViewModel, onClose: () -> Unit) {
                             onAddHomeApp = { pickTarget = PickTarget.HomeSlot(settings.homeApps.size) },
                             onCycleAlignment = { viewModel.cycleAlignment() },
                             onCycleDim = { viewModel.cycleWallpaperDim() },
-                            onEditSwipeLeft = { pickTarget = PickTarget.SwipeLeft },
                             onEditSwipeRight = { pickTarget = PickTarget.SwipeRight },
-                            onClearSwipeLeft = { viewModel.setSwipeLeftApp(null) },
                             onClearSwipeRight = { viewModel.setSwipeRightApp(null) },
+                            onToggleSpacesEnabled = {
+                                viewModel.setSpacesEnabled(!settings.spaces.enabled)
+                            },
+                            onToggleSpacesBlur = {
+                                viewModel.setSpacesWallpaperBlur(!settings.spaces.wallpaperBlur)
+                            },
+                            onCreateSpace = { viewModel.createSpace(it) },
+                            onRenameSpace = { id, name -> viewModel.renameSpace(id, name) },
+                            onDeleteSpace = { viewModel.deleteSpace(it) },
+                            onMoveSpace = { id, offset -> viewModel.moveSpace(id, offset) },
+                            onSetSpaceSlot = { id, index, app -> viewModel.setSpaceSlot(id, index, app) },
                             onCycleTheme = { viewModel.cycleTheme() },
                             onToggleStatusBar = { viewModel.toggleStatusBar() },
                             onToggleAnimations = { viewModel.toggleAnimations() },

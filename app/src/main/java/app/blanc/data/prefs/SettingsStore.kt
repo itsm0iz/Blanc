@@ -8,6 +8,10 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import app.blanc.spaces.BlancSpace
+import app.blanc.spaces.SpaceSlot
+import app.blanc.spaces.SpacesCodec
+import app.blanc.spaces.SpacesConfig
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -44,7 +48,22 @@ class SettingsStore(context: Context) {
             swipeLeftApp = this[KEY_SWIPE_LEFT]?.let { AppKey.decode(it) },
             swipeRightApp = this[KEY_SWIPE_RIGHT]?.let { AppKey.decode(it) },
             nudgesEnabled = this[KEY_NUDGES] ?: true,
+            spaces = readSpaces(),
         )
+    }
+
+    /** Import the former swipe-left app into a first Space without erasing it. */
+    private fun Preferences.readSpaces(): SpacesConfig {
+        this[KEY_SPACES]?.let { return SpacesCodec.decode(it) }
+        val legacy = this[KEY_SWIPE_LEFT]?.let { AppKey.decode(it) } ?: return SpacesConfig.DEFAULT
+        val quick = BlancSpace.empty(LEGACY_QUICK_SPACE_ID, "Quick").withSlot(
+            index = 0,
+            slot = SpaceSlot(
+                appKey = legacy,
+                savedLabel = legacy.packageName.substringAfterLast('.'),
+            ),
+        )
+        return SpacesConfig.DEFAULT.copy(spaces = listOf(quick))
     }
 
     suspend fun setHomeApps(apps: List<AppKey>) {
@@ -109,6 +128,77 @@ class SettingsStore(context: Context) {
         store.edit { it[KEY_NUDGES] = enabled }
     }
 
+    // --- Spaces ----------------------------------------------------------
+
+    /**
+     * Every Spaces mutation reads and writes inside the same DataStore edit.
+     * This prevents two quick slot edits from overwriting one another with a
+     * stale UI snapshot.
+     */
+    private suspend fun updateSpaces(transform: (SpacesConfig) -> SpacesConfig) {
+        store.edit { prefs ->
+            val current = prefs.readSpaces()
+            prefs[KEY_SPACES] = SpacesCodec.encode(transform(current))
+        }
+    }
+
+    suspend fun setSpacesEnabled(enabled: Boolean) {
+        updateSpaces { it.copy(enabled = enabled) }
+    }
+
+    suspend fun setSpacesWallpaperBlur(enabled: Boolean) {
+        updateSpaces { it.copy(wallpaperBlur = enabled) }
+    }
+
+    suspend fun createSpace(id: String, name: String) {
+        updateSpaces { config ->
+            if (config.spaces.size >= SpacesConfig.MAX_SPACES || config.spaces.any { it.id == id }) {
+                config
+            } else {
+                config.copy(spaces = config.spaces + BlancSpace.empty(id, name))
+            }
+        }
+    }
+
+    suspend fun renameSpace(spaceId: String, name: String) {
+        updateSpaces { config ->
+            config.copy(
+                spaces = config.spaces.map { space ->
+                    if (space.id == spaceId) space.withName(name) else space
+                },
+            )
+        }
+    }
+
+    suspend fun deleteSpace(spaceId: String) {
+        updateSpaces { config -> config.copy(spaces = config.spaces.filterNot { it.id == spaceId }) }
+    }
+
+    suspend fun moveSpace(spaceId: String, offset: Int) {
+        if (offset == 0) return
+        updateSpaces { config ->
+            val from = config.spaces.indexOfFirst { it.id == spaceId }
+            if (from < 0) return@updateSpaces config
+            val to = (from + offset).coerceIn(config.spaces.indices)
+            if (from == to) return@updateSpaces config
+            val reordered = config.spaces.toMutableList()
+            val moving = reordered.removeAt(from)
+            reordered.add(to, moving)
+            config.copy(spaces = reordered)
+        }
+    }
+
+    suspend fun setSpaceSlot(spaceId: String, index: Int, slot: SpaceSlot?) {
+        if (index !in 0 until BlancSpace.SLOT_COUNT) return
+        updateSpaces { config ->
+            config.copy(
+                spaces = config.spaces.map { space ->
+                    if (space.id == spaceId) space.withSlot(index, slot) else space
+                },
+            )
+        }
+    }
+
     private companion object {
         val KEY_HOME_APPS = stringPreferencesKey("home_apps")
         val KEY_ALIGNMENT = intPreferencesKey("alignment")
@@ -120,5 +210,7 @@ class SettingsStore(context: Context) {
         val KEY_SWIPE_LEFT = stringPreferencesKey("swipe_left_app")
         val KEY_SWIPE_RIGHT = stringPreferencesKey("swipe_right_app")
         val KEY_NUDGES = booleanPreferencesKey("nudges_enabled")
+        val KEY_SPACES = stringPreferencesKey("spaces_config_v1")
+        const val LEGACY_QUICK_SPACE_ID = "legacy-quick"
     }
 }
